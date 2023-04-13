@@ -19,6 +19,7 @@ export type Options<T extends keyof GeneratedTypes['collections']> = {
   user?: Document
   overrideAccess?: boolean
   showHiddenFields?: boolean
+  queryHiddenFields?: boolean
   sort?: string
   where?: Where
 }
@@ -38,6 +39,7 @@ export default async function findVersionsLocal<T extends keyof GeneratedTypes['
     user,
     overrideAccess = true,
     showHiddenFields,
+    queryHiddenFields,
     sort,
   } = options;
 
@@ -70,6 +72,7 @@ export default async function findVersionsLocal<T extends keyof GeneratedTypes['
     sort,
     overrideAccess,
     showHiddenFields,
+    queryHiddenFields,
     req,
   });
 }

@@ -29,6 +29,7 @@ export type Arguments<T extends { [field: string | number | symbol]: unknown }> 
   disableVerificationEmail?: boolean
   overrideAccess?: boolean
   showHiddenFields?: boolean
+  queryHiddenFields?: boolean
   overwriteExistingFiles?: boolean
   draft?: boolean
 }
@@ -61,7 +62,6 @@ async function update<TSlug extends keyof GeneratedTypes['collections']>(
     req,
     req: {
       t,
-      locale,
       payload,
       payload: {
         config,
@@ -69,6 +69,7 @@ async function update<TSlug extends keyof GeneratedTypes['collections']>(
     },
     overrideAccess,
     showHiddenFields,
+    queryHiddenFields,
     overwriteExistingFiles = false,
     draft: draftArg = false,
   } = args;
@@ -114,7 +115,18 @@ async function update<TSlug extends keyof GeneratedTypes['collections']>(
     }
   }
 
-  const query = await Model.buildQuery(queryToBuild, locale);
+  const [query, queryError] = await Model.buildQuery({
+    query: queryToBuild,
+    req,
+    type: 'collection',
+    entity: collectionConfig,
+    queryHiddenFields,
+    overrideAccess,
+  });
+
+  if (queryError) {
+    throw new APIError(queryError, httpStatus.BAD_REQUEST);
+  }
 
   // /////////////////////////////////////
   // Retrieve documents
@@ -124,10 +136,10 @@ async function update<TSlug extends keyof GeneratedTypes['collections']>(
   if (collectionConfig.versions?.drafts && shouldSaveDraft) {
     docs = await queryDrafts<GeneratedTypes['collections'][TSlug]>({
       accessResult,
-      collection,
-      locale,
-      payload,
+      req,
       where: query,
+      collection,
+      payload,
     });
   } else {
     docs = await Model.find(query, {}, { lean: true });

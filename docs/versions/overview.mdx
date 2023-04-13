@@ -25,12 +25,6 @@ _Comparing an old version to a newer version of a document_
 - Enable [Autosave](/docs/versions/autosave) on collections and globals to never lose your work again
 - Build a powerful publishing schedule mechanism to create documents and have them become publicly readable automatically at a future date
 
-<Banner type="success">
-  Versions are extremely performant and totally opt-in. They don't change the
-  shape of your data at all. All versions are stored in a separate Collection
-  and can be turned on and off easily at your discretion.
-</Banner>
-
 ### Options
 
 Versions support a few different levels of functionality that each come with their own impacts to document workflow.
@@ -93,6 +87,10 @@ Each document in this new `versions` collection will store a set of meta propert
 
 Global versions are stored the same as the collection version shown above, except they do not feature the `parent` property, as each Global receives its own `versions` collection. That means we know that all versions in that collection correspond to that specific global.
 
+<Banner type="warning">
+  Enabling versions for a collection that already has documents will require resaving all documents, for a script that will handle
+</Banner>
+
 ### Version operations
 
 Versions expose new operations for both collections and globals. They allow you to find and query versions, find a single version by ID, and publish (or restore) a version by ID. Both Collections and Globals support the same new operations. They are used primarily by the admin UI, but if you are writing custom logic in your app and would like to utilize them, they're available for you to use as well via REST, GraphQL, and Local APIs.
@@ -137,6 +135,7 @@ const result = await payload.findVersions({
   user: dummyUser,
   overrideAccess: false,
   showHiddenFields: true,
+  queryHiddenFields: true,
 });
 ```
 

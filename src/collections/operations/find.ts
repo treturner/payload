@@ -1,3 +1,4 @@
+import httpStatus from 'http-status';
 import { Where } from '../../types';
 import { PayloadRequest } from '../../express/types';
 import executeAccess from '../../auth/executeAccess';
@@ -10,6 +11,7 @@ import { buildSortParam } from '../../mongoose/buildSortParam';
 import { AccessResult } from '../../config/types';
 import { afterRead } from '../../fields/hooks/afterRead';
 import { queryDrafts } from '../../versions/drafts/queryDrafts';
+import { APIError } from '../../errors';
 
 export type Arguments = {
   collection: Collection
@@ -126,7 +128,18 @@ async function find<T extends TypeWithID & Record<string, unknown>>(
     }
   }
 
-  const query = await Model.buildQuery(queryToBuild, locale, queryHiddenFields);
+  const [query, queryError] = await Model.buildQuery({
+    req,
+    query: queryToBuild,
+    type: 'collection',
+    entity: collectionConfig,
+    queryHiddenFields,
+    overrideAccess,
+  });
+
+  if (queryError) {
+    throw new APIError(queryError, httpStatus.BAD_REQUEST);
+  }
 
   // /////////////////////////////////////
   // Find
@@ -165,8 +178,8 @@ async function find<T extends TypeWithID & Record<string, unknown>>(
   if (collectionConfig.versions?.drafts && draftsEnabled) {
     result = await queryDrafts<T>({
       accessResult,
+      req,
       collection,
-      locale,
       paginationOptions,
       payload,
       where,

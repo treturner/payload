@@ -34,7 +34,6 @@ async function restoreVersion<T extends TypeWithID = any>(args: Arguments): Prom
     depth,
     req: {
       t,
-      locale,
       payload,
     },
     req,
@@ -89,7 +88,17 @@ async function restoreVersion<T extends TypeWithID = any>(args: Arguments): Prom
     (queryToBuild.where.and as Where[]).push(accessResults);
   }
 
-  const query = await Model.buildQuery(queryToBuild, locale);
+  const [query, queryError] = await Model.buildQuery({
+    req,
+    query: queryToBuild,
+    type: 'collection',
+    entity: collectionConfig,
+    overrideAccess,
+  });
+
+  if (queryError) {
+    throw new APIError(queryError, httpStatus.BAD_REQUEST);
+  }
 
   const doc = await Model.findOne(query);
 

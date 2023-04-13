@@ -1,3 +1,4 @@
+import httpStatus from 'http-status';
 import { Where } from '../../types';
 import { PayloadRequest } from '../../express/types';
 import executeAccess from '../../auth/executeAccess';
@@ -10,6 +11,7 @@ import { SanitizedGlobalConfig } from '../config/types';
 import { afterRead } from '../../fields/hooks/afterRead';
 import { buildVersionGlobalFields } from '../../versions/buildGlobalFields';
 import { TypeWithVersion } from '../../versions/types';
+import { APIError } from '../../errors';
 
 export type Arguments = {
   globalConfig: SanitizedGlobalConfig
@@ -21,6 +23,7 @@ export type Arguments = {
   req?: PayloadRequest
   overrideAccess?: boolean
   showHiddenFields?: boolean
+  queryHiddenFields?: boolean
 }
 
 async function findVersions<T extends TypeWithVersion<T>>(
@@ -39,6 +42,7 @@ async function findVersions<T extends TypeWithVersion<T>>(
     },
     overrideAccess,
     showHiddenFields,
+    queryHiddenFields,
   } = args;
 
   const VersionsModel = payload.versions[globalConfig.slug];
@@ -84,7 +88,18 @@ async function findVersions<T extends TypeWithVersion<T>>(
     }
   }
 
-  const query = await VersionsModel.buildQuery(queryToBuild, locale);
+  const [query, queryError] = await VersionsModel.buildQuery({
+    query: queryToBuild,
+    req,
+    type: 'global',
+    entity: globalConfig,
+    queryHiddenFields,
+    overrideAccess,
+  });
+
+  if (queryError) {
+    throw new APIError(queryError, httpStatus.BAD_REQUEST);
+  }
 
   // /////////////////////////////////////
   // Find

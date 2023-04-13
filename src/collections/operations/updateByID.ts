@@ -1,11 +1,11 @@
 import httpStatus from 'http-status';
 import { Config as GeneratedTypes } from 'payload/generated-types';
 import { DeepPartial } from 'ts-essentials';
-import { Where, Document } from '../../types';
+import { Document, Where } from '../../types';
 import { Collection } from '../config/types';
 import sanitizeInternalFields from '../../utilities/sanitizeInternalFields';
 import executeAccess from '../../auth/executeAccess';
-import { NotFound, Forbidden, APIError, ValidationError } from '../../errors';
+import { APIError, Forbidden, NotFound, ValidationError } from '../../errors';
 import { PayloadRequest } from '../../express/types';
 import { hasWhereAccessResult } from '../../auth/types';
 import { saveVersion } from '../../versions/saveVersion';
@@ -112,7 +112,17 @@ async function updateByID<TSlug extends keyof GeneratedTypes['collections']>(
     (queryToBuild.where.and as Where[]).push(accessResults);
   }
 
-  const query = await Model.buildQuery(queryToBuild, locale);
+  const [query, queryError] = await Model.buildQuery({
+    query: queryToBuild,
+    req,
+    type: 'collection',
+    entity: collectionConfig,
+    overrideAccess,
+  });
+
+  if (queryError) {
+    throw new APIError(queryError, httpStatus.BAD_REQUEST);
+  }
 
   const doc = await getLatestCollectionVersion({
     payload,

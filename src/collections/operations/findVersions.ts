@@ -1,3 +1,4 @@
+import httpStatus from 'http-status';
 import { Where } from '../../types';
 import { PayloadRequest } from '../../express/types';
 import executeAccess from '../../auth/executeAccess';
@@ -10,6 +11,7 @@ import { PaginatedDocs } from '../../mongoose/types';
 import { TypeWithVersion } from '../../versions/types';
 import { afterRead } from '../../fields/hooks/afterRead';
 import { buildVersionCollectionFields } from '../../versions/buildCollectionFields';
+import { APIError } from '../../errors';
 
 export type Arguments = {
   collection: Collection
@@ -21,6 +23,7 @@ export type Arguments = {
   req?: PayloadRequest
   overrideAccess?: boolean
   showHiddenFields?: boolean
+  queryHiddenFields?: boolean
 }
 
 async function findVersions<T extends TypeWithVersion<T>>(
@@ -41,6 +44,7 @@ async function findVersions<T extends TypeWithVersion<T>>(
     },
     overrideAccess,
     showHiddenFields,
+    queryHiddenFields,
   } = args;
 
   const VersionsModel = payload.versions[collectionConfig.slug] as CollectionModel;
@@ -86,7 +90,18 @@ async function findVersions<T extends TypeWithVersion<T>>(
     }
   }
 
-  const query = await VersionsModel.buildQuery(queryToBuild, locale);
+  const [query, queryError] = await VersionsModel.buildQuery({
+    query: queryToBuild,
+    req,
+    type: 'collection',
+    entity: collectionConfig,
+    queryHiddenFields,
+    overrideAccess,
+  });
+
+  if (queryError) {
+    throw new APIError(queryError, httpStatus.BAD_REQUEST);
+  }
 
   // /////////////////////////////////////
   // Find

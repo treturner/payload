@@ -1,4 +1,4 @@
-import { Response, NextFunction } from 'express';
+import { NextFunction, Response } from 'express';
 import { Where } from '../types';
 import executeAccess from './executeAccess';
 import { Forbidden } from '../errors';
@@ -43,7 +43,12 @@ const getExecuteStaticAccess = ({ config, Model }) => async (req: PayloadRequest
           });
         }
 
-        const query = await Model.buildQuery(queryToBuild, req.locale);
+        const query = await Model.buildQuery({
+          req,
+          queryToBuild,
+          entity: config,
+          type: 'collection',
+        });
         const doc = await Model.findOne(query);
 
         if (!doc) {

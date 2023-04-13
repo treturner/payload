@@ -1,12 +1,17 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-restricted-syntax */
 import deepmerge from 'deepmerge';
-import mongoose, { FilterQuery } from 'mongoose';
+import mongoose, { FilterQuery, Schema } from 'mongoose';
 import { combineMerge } from '../utilities/combineMerge';
-import { CollectionModel } from '../collections/config/types';
 import { getSchemaTypeOptions } from './getSchemaTypeOptions';
 import { operatorMap } from './operatorMap';
 import { sanitizeQueryValue } from './sanitizeFormattedValue';
+import type { BuildQueryArgs, CollectionModel, SanitizedCollectionConfig } from '../collections/config/types';
+import type { PayloadRequest } from '../express/types';
+import type { SanitizedConfig } from '../config/types';
+import { SanitizedGlobalConfig } from '../globals/config/types';
+import { CollectionPermission, GlobalPermission } from '../../auth';
+import { getEntityPolicies } from '../utilities/getEntityPolicies';
 
 const validOperators = ['like', 'contains', 'in', 'all', 'not_in', 'greater_than_equal', 'greater_than', 'less_than_equal', 'less_than', 'not_equals', 'equals', 'exists', 'near'];
 
@@ -27,6 +32,7 @@ type PathToQuery = {
   complete: boolean
   path: string
   Model: CollectionModel
+  config: SanitizedCollectionConfig | SanitizedGlobalConfig
 }
 
 type SearchParam = {
@@ -34,15 +40,16 @@ type SearchParam = {
   value: unknown,
 }
 
-class ParamParser {
-  locale: string;
-
-  queryHiddenFields: boolean
-
-  rawParams: any;
-
-  model: any;
-
+type ParamParserArgs = {
+  model
+  req: PayloadRequest
+  rawParams: unknown
+  type: 'collection' | 'global'
+  entity: SanitizedCollectionConfig | SanitizedGlobalConfig
+  overrideAccess?: boolean
+  queryHiddenFields?: boolean
+}
+class ParamParser implements ParamParserArgs {
   query: {
     searchParams: {
       [key: string]: any;
@@ -50,11 +57,23 @@ class ParamParser {
     sort: boolean;
   };
 
-  constructor(model, rawParams, locale: string, queryHiddenFields?: boolean) {
+  constructor({
+    model,
+    entity,
+    type,
+    req,
+    rawParams,
+    overrideAccess,
+    queryHiddenFields,
+  }: ParamParserArgs) {
     this.parse = this.parse.bind(this);
     this.model = model;
+    this.entity = entity;
+    this.type = type;
+    this.req = req;
+    this.config = req.payload.config;
     this.rawParams = rawParams;
-    this.locale = locale;
+    this.overrideAccess = overrideAccess;
     this.queryHiddenFields = queryHiddenFields;
     this.query = {
       searchParams: {},
@@ -62,15 +81,47 @@ class ParamParser {
     };
   }
 
-  // Entry point to the ParamParser class
+  model: ParamParserArgs['model'];
 
+  req: ParamParserArgs['req'];
+
+  config: SanitizedConfig;
+
+  rawParams: ParamParserArgs['rawParams'];
+
+  type: ParamParserArgs['type']
+
+  entity: ParamParserArgs['entity']
+
+  overrideAccess: ParamParserArgs['overrideAccess']
+
+  queryHiddenFields: ParamParserArgs['queryHiddenFields']
+
+  policies: Record<string, [CollectionPermission | GlobalPermission, Promise<void>[]]>
+
+  error: unknown
+
+  // Entry point to the ParamParser class
   async parse(): Promise<ParseType> {
     if (typeof this.rawParams === 'object') {
+      this.policies = {
+        [this.entity.slug]: getEntityPolicies({
+          req: this.req,
+          entity: this.entity,
+          operations: ['read'],
+          type: this.type,
+        }),
+      };
       for (const key of Object.keys(this.rawParams)) {
         if (key === 'where') {
-          this.query.searchParams = await this.parsePathOrRelation(this.rawParams.where);
+          this.query.searchParams = await this.parsePathOrRelation(this.policies[this.entity.slug], 'where' in this.rawParams && this.rawParams.where);
         } else if (key === 'sort') {
-          this.query.sort = this.rawParams[key];
+          const [policy, promises] = this.policies[this.entity.slug];
+          await Promise.all(promises);
+          // only sort on a field that has read accesss
+          if (policy.fields[key].read.permission) {
+            this.query.sort = this.rawParams[key];
+          }
         }
       }
       return this.query;
@@ -78,17 +129,17 @@ class ParamParser {
     return {};
   }
 
-  async parsePathOrRelation(object) {
+  async parsePathOrRelation(policy, object) {
     let result = {} as FilterQuery<any>;
     // We need to determine if the whereKey is an AND, OR, or a schema path
     for (const relationOrPath of Object.keys(object)) {
       if (relationOrPath.toLowerCase() === 'and') {
         const andConditions = object[relationOrPath];
-        const builtAndConditions = await this.buildAndOrConditions(andConditions);
+        const builtAndConditions = await this.buildAndOrConditions(policy, andConditions);
         if (builtAndConditions.length > 0) result.$and = builtAndConditions;
       } else if (relationOrPath.toLowerCase() === 'or' && Array.isArray(object[relationOrPath])) {
         const orConditions = object[relationOrPath];
-        const builtOrConditions = await this.buildAndOrConditions(orConditions);
+        const builtOrConditions = await this.buildAndOrConditions(policy, orConditions);
         if (builtOrConditions.length > 0) result.$or = builtOrConditions;
       } else {
         // It's a path - and there can be multiple comparisons on a single path.
@@ -116,14 +167,14 @@ class ParamParser {
     return result;
   }
 
-  async buildAndOrConditions(conditions) {
+  async buildAndOrConditions(policy, conditions) {
     const completedConditions = [];
     // Loop over all AND / OR operations and add them to the AND / OR query param
     // Operations should come through as an array
     for (const condition of conditions) {
       // If the operation is properly formatted as an object
       if (typeof condition === 'object') {
-        const result = await this.parsePathOrRelation(condition);
+        const result = await this.parsePathOrRelation(policy, condition);
         if (Object.keys(result).length > 0) {
           completedConditions.push(result);
         }
@@ -135,8 +186,10 @@ class ParamParser {
   // Build up an array of auto-localized paths to search on
   // Multiple paths may be possible if searching on properties of relationship fields
 
-  getLocalizedPaths(Model: CollectionModel, incomingPath: string, operator): PathToQuery[] {
+  async getLocalizedPaths(config: SanitizedCollectionConfig | SanitizedGlobalConfig, Model: CollectionModel, incomingPath: string, operator): Promise<PathToQuery[]> {
     const { schema } = Model;
+    const [policy, promises] = this.policies[config.slug];
+    await Promise.all(promises);
     const pathSegments = incomingPath.split('.');
 
     let paths: PathToQuery[] = [
@@ -144,10 +197,11 @@ class ParamParser {
         path: '',
         complete: false,
         Model,
+        config,
       },
     ];
 
-    pathSegments.every((segment, i) => {
+    const segmentPromises = pathSegments.map(async (segment, i) => {
       const lastIncompletePath = paths.find(({ complete }) => !complete);
       const { path } = lastIncompletePath;
 
@@ -162,6 +216,42 @@ class ParamParser {
 
       const upcomingSegment = pathSegments[i + 1];
 
+      if (!this.overrideAccess) {
+        if (currentSchemaPathType === 'adhocOrUndefined' && path !== currentPath && currentSchemaType?.options?.relationTo?.enum) {
+          let hasPolicy = false;
+          const allPromises = currentSchemaType.options.relationTo.enum.map((slug) => {
+            if (!this.policies[slug]) {
+              this.policies[slug] = getEntityPolicies({
+                req: this.req,
+                entity: this.req.payload.collections[slug].config,
+                operations: ['read'],
+                type: 'collection',
+              });
+            }
+            return this.policies[slug][1];
+          });
+          await Promise.all(allPromises);
+
+          currentSchemaType.options.relationTo.enum.forEach((slug) => {
+            const [policyRelation] = this.policies[slug];
+            if (policyRelation.fields[segment] && policyRelation.fields[segment].read.permission) {
+              hasPolicy = true;
+            }
+          });
+
+          // relationship.value is allowed for populating multi-relationship docs
+          // TODO: discover a better way to identify relationship.value
+          if (!hasPolicy && !currentPath.endsWith('.value')) {
+            this.error = `Unknown property in query: "${currentPath}"`;
+            return false;
+          }
+        } else if (currentPath !== '_id' && ((currentSchemaPathType === 'real' && !upcomingSegment) || (currentSchemaPathType === 'adhocOrUndefined' && segment === currentPath)) && (!policy.fields?.[currentPath] || policy.fields?.[currentPath].read.permission === false)) {
+          // throw the same error for non-existing fields and permission errors for security
+          this.error = `Unknown property in query: "${currentPath}"`;
+          return false;
+        }
+      }
+
       if (currentSchemaType && currentSchemaPathType !== 'adhocOrUndefined') {
         const currentSchemaTypeOptions = getSchemaTypeOptions(currentSchemaType);
 
@@ -174,7 +264,7 @@ class ParamParser {
             return true;
           }
 
-          const localePath = `${currentPath}.${this.locale}`;
+          const localePath = `${currentPath}.${this.req.locale}`;
           const localizedSchemaType = schema.path(localePath);
 
           if (localizedSchemaType || operator === 'near') {
@@ -193,6 +283,15 @@ class ParamParser {
         const priorSchemaTypeOptions = getSchemaTypeOptions(priorSchemaType);
         if (typeof priorSchemaTypeOptions.ref === 'string') {
           const RefModel = mongoose.model(priorSchemaTypeOptions.ref) as any;
+          const refConfig = this.req.payload.collections[priorSchemaTypeOptions.ref].config;
+          if (!this.policies[priorSchemaTypeOptions.ref]) {
+            this.policies[priorSchemaTypeOptions.ref] = getEntityPolicies({
+              req: this.req,
+              entity: refConfig,
+              operations: ['read'],
+              type: 'collection',
+            });
+          }
 
           lastIncompletePath.complete = true;
 
@@ -200,7 +299,7 @@ class ParamParser {
 
           paths = [
             ...paths,
-            ...this.getLocalizedPaths(RefModel, remainingPath, operator),
+            ...await this.getLocalizedPaths(this.req.payload.collections[priorSchemaTypeOptions.ref].config as unknown as SanitizedCollectionConfig, RefModel, remainingPath, operator),
           ];
 
           return false;
@@ -213,7 +312,7 @@ class ParamParser {
 
       return true;
     });
-
+    await Promise.all(segmentPromises);
     return paths;
   }
 
@@ -223,7 +322,7 @@ class ParamParser {
     let sanitizedPath = incomingPath.replace(/__/gi, '.');
     if (sanitizedPath === 'id') sanitizedPath = '_id';
 
-    const collectionPaths = this.getLocalizedPaths(this.model, sanitizedPath, operator);
+    const collectionPaths = await this.getLocalizedPaths(this.entity, this.model, sanitizedPath, operator);
     const [{ path }] = collectionPaths;
 
     if (path) {
@@ -246,25 +345,39 @@ class ParamParser {
           value: {},
         } as SearchParam;
 
-        const relationshipQuery = await collectionPathsToSearch.reduce(async (priorQuery, { Model: SubModel, path: subPath }, i) => {
+        const relationshipQuery = collectionPathsToSearch.reduce(async (priorQuery, {
+          config: subEntity,
+          Model: SubModel,
+          path: subPath,
+        }, i) => {
           const priorQueryResult = await priorQuery;
 
           // On the "deepest" collection,
           // Search on the value passed through the query
           if (i === 0) {
-            const subQuery = await SubModel.buildQuery({
-              where: {
+            const [subQuery, subQueryError] = await SubModel.buildQuery({
+              req: this.req,
+              type: 'collection',
+              entity: subEntity,
+              query: {
                 [subPath]: {
                   [operator]: val,
                 },
               },
-            }, this.locale);
+              overrideAccess: true,
+            });
+            if (subQueryError) {
+              this.error = subQueryError;
+              return { path, value: {} };
+            }
 
             const result = await SubModel.find(subQuery, subQueryOptions);
 
             const $in = result.map((doc) => doc._id.toString());
 
-            if (collectionPathsToSearch.length === 1) return { path, value: { $in } };
+            if (collectionPathsToSearch.length === 1) {
+              return { path, value: { $in } };
+            }
 
             const nextSubPath = collectionPathsToSearch[i + 1].path;
 
@@ -360,15 +473,31 @@ class ParamParser {
     return undefined;
   }
 }
+
 // This plugin asynchronously builds a list of Mongoose query constraints
 // which can then be used in subsequent Mongoose queries.
-function buildQueryPlugin(schema) {
-  const modifiedSchema = schema;
-  async function buildQuery(rawParams, locale, queryHiddenFields = false) {
-    const paramParser = new ParamParser(this, rawParams, locale, queryHiddenFields);
+function buildQueryPlugin(schema: Schema): void {
+  async function buildQuery({
+    req,
+    query,
+    type,
+    entity,
+    overrideAccess,
+    queryHiddenFields = false,
+  }: BuildQueryArgs) {
+    const paramParser = new ParamParser({
+      model: this,
+      req,
+      rawParams: query,
+      type,
+      entity,
+      overrideAccess,
+      queryHiddenFields,
+    });
     const params = await paramParser.parse();
-    return params.searchParams;
+    return [params.searchParams, paramParser.error];
   }
-  modifiedSchema.statics.buildQuery = buildQuery;
+  // eslint-disable-next-line no-param-reassign
+  schema.statics.buildQuery = buildQuery;
 }
 export default buildQueryPlugin;

@@ -78,7 +78,12 @@ async function update<TSlug extends keyof GeneratedTypes['globals']>(
     (queryToBuild.where.and as Where[]).push(accessResults);
   }
 
-  const query = await Model.buildQuery(queryToBuild, locale);
+  const query = await Model.buildQuery({
+    query: queryToBuild,
+    req,
+    operation: 'update',
+    overrideAccess,
+  });
 
   // /////////////////////////////////////
   // 2. Retrieve document

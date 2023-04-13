@@ -62,7 +62,13 @@ async function findOne<T extends Record<string, unknown>>(args: Args): Promise<T
     }
   }
 
-  const query = await Model.buildQuery(queryToBuild, locale);
+  const query = await Model.buildQuery({
+    query: queryToBuild,
+    req,
+    type: 'global',
+    entity: globalConfig,
+    overrideAccess,
+  });
 
   // /////////////////////////////////////
   // Perform database operation
@@ -87,7 +93,7 @@ async function findOne<T extends Record<string, unknown>>(args: Args): Promise<T
 
   if (globalConfig.versions?.drafts && draftEnabled) {
     doc = await replaceWithDraftIfAvailable({
-      payload,
+      req,
       entity: globalConfig,
       entityType: 'global',
       doc,

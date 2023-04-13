@@ -21,6 +21,7 @@ export type BaseOptions<TSlug extends keyof GeneratedTypes['collections']> = {
   user?: Document
   overrideAccess?: boolean
   showHiddenFields?: boolean
+  queryHiddenFields?: boolean
   filePath?: string
   file?: File
   overwriteExistingFiles?: boolean
@@ -53,6 +54,7 @@ async function updateLocal<TSlug extends keyof GeneratedTypes['collections']>(pa
     user,
     overrideAccess = true,
     showHiddenFields,
+    queryHiddenFields,
     filePath,
     file,
     overwriteExistingFiles = false,
@@ -92,6 +94,7 @@ async function updateLocal<TSlug extends keyof GeneratedTypes['collections']>(pa
     collection,
     overrideAccess,
     showHiddenFields,
+    queryHiddenFields,
     overwriteExistingFiles,
     draft,
     autosave,

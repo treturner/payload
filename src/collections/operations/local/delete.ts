@@ -17,6 +17,7 @@ export type BaseOptions<T extends keyof GeneratedTypes['collections']> = {
   user?: Document
   overrideAccess?: boolean
   showHiddenFields?: boolean
+  queryHiddenFields?: boolean
 }
 
 export type ByIDOptions<T extends keyof GeneratedTypes['collections']> = BaseOptions<T> & {
@@ -45,6 +46,7 @@ async function deleteLocal<TSlug extends keyof GeneratedTypes['collections']>(pa
     user,
     overrideAccess = true,
     showHiddenFields,
+    queryHiddenFields,
   } = options;
 
   const collection = payload.collections[collectionSlug];
@@ -74,6 +76,7 @@ async function deleteLocal<TSlug extends keyof GeneratedTypes['collections']>(pa
     collection,
     overrideAccess,
     showHiddenFields,
+    queryHiddenFields,
     req,
   };
 

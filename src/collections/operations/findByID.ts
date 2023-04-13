@@ -1,9 +1,10 @@
 /* eslint-disable no-underscore-dangle */
 import memoize from 'micro-memoize';
+import httpStatus from 'http-status';
 import { PayloadRequest } from '../../express/types';
 import { Collection, TypeWithID } from '../config/types';
 import sanitizeInternalFields from '../../utilities/sanitizeInternalFields';
-import { NotFound } from '../../errors';
+import { APIError, NotFound } from '../../errors';
 import executeAccess from '../../auth/executeAccess';
 import { Where } from '../../types';
 import { hasWhereAccessResult } from '../../auth/types';
@@ -51,7 +52,6 @@ async function findByID<T extends TypeWithID>(
     req: {
       t,
       locale,
-      payload,
     },
     disableErrors,
     currentDepth,
@@ -85,7 +85,18 @@ async function findByID<T extends TypeWithID>(
     queryToBuild.where.and.push(accessResult);
   }
 
-  const query = await Model.buildQuery(queryToBuild, locale);
+  const [query, queryError] = await Model.buildQuery({
+    req,
+    query: queryToBuild,
+    type: 'collection',
+    entity: collectionConfig,
+    overrideAccess,
+  });
+
+  if (queryError) {
+    throw new APIError(queryError, httpStatus.BAD_REQUEST);
+  }
+
 
   // /////////////////////////////////////
   // Find by ID
@@ -127,7 +138,7 @@ async function findByID<T extends TypeWithID>(
 
   if (collectionConfig.versions?.drafts && draftEnabled) {
     result = await replaceWithDraftIfAvailable({
-      payload,
+      req,
       entity: collectionConfig,
       entityType: 'collection',
       doc: result,

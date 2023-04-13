@@ -1,14 +1,15 @@
-import { Payload } from '../../payload';
-import { docHasTimestamps, Where } from '../../types';
+import httpStatus from 'http-status';
+import { docHasTimestamps, PayloadRequest, Where } from '../../types';
 import { hasWhereAccessResult } from '../../auth';
 import { AccessResult } from '../../config/types';
 import { CollectionModel, SanitizedCollectionConfig, TypeWithID } from '../../collections/config/types';
 import sanitizeInternalFields from '../../utilities/sanitizeInternalFields';
 import { appendVersionToQueryKey } from './appendVersionToQueryKey';
 import { SanitizedGlobalConfig } from '../../globals/config/types';
+import { APIError } from '../../errors';
 
 type Arguments<T> = {
-  payload: Payload
+  req: PayloadRequest
   entity: SanitizedCollectionConfig | SanitizedGlobalConfig
   entityType: 'collection' | 'global'
   doc: T
@@ -17,11 +18,13 @@ type Arguments<T> = {
 }
 
 const replaceWithDraftIfAvailable = async <T extends TypeWithID>({
-  payload,
+  req,
+  req: {
+    payload,
+  },
   entity,
   entityType,
   doc,
-  locale,
   accessResult,
 }: Arguments<T>): Promise<T> => {
   const VersionModel = payload.versions[entity.slug] as CollectionModel;
@@ -59,7 +62,16 @@ const replaceWithDraftIfAvailable = async <T extends TypeWithID>({
     queryToBuild.where.and.push(versionAccessResult);
   }
 
-  const query = await VersionModel.buildQuery(queryToBuild, locale);
+  const [query, queryError] = await VersionModel.buildQuery({
+    query: queryToBuild,
+    req,
+    type: entityType,
+    entity,
+  });
+
+  if (queryError) {
+    throw new APIError(queryError, httpStatus.BAD_REQUEST);
+  }
 
   let draft = await VersionModel.findOne(query, {}, {
     lean: true,

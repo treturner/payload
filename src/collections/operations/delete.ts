@@ -19,6 +19,7 @@ export type Arguments = {
   req: PayloadRequest
   overrideAccess?: boolean
   showHiddenFields?: boolean
+  queryHiddenFields?: boolean
 }
 
 async function deleteOperation<TSlug extends keyof GeneratedTypes['collections']>(
@@ -55,7 +56,6 @@ async function deleteOperation<TSlug extends keyof GeneratedTypes['collections']
     req,
     req: {
       t,
-      locale,
       payload,
       payload: {
         config,
@@ -64,6 +64,7 @@ async function deleteOperation<TSlug extends keyof GeneratedTypes['collections']
     },
     overrideAccess,
     showHiddenFields,
+    queryHiddenFields,
   } = args;
 
   if (!where) {
@@ -104,7 +105,18 @@ async function deleteOperation<TSlug extends keyof GeneratedTypes['collections']
     }
   }
 
-  const query = await Model.buildQuery(queryToBuild, locale);
+  const [query, queryError] = await Model.buildQuery({
+    req,
+    query: queryToBuild,
+    entity: collectionConfig,
+    type: 'collection',
+    queryHiddenFields,
+    overrideAccess,
+  });
+
+  if (queryError) {
+    throw new APIError(queryError, httpStatus.BAD_REQUEST);
+  }
 
   // /////////////////////////////////////
   // Retrieve documents

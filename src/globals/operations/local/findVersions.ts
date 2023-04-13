@@ -19,6 +19,7 @@ export type Options<T extends keyof GeneratedTypes['globals']> = {
   user?: Document
   overrideAccess?: boolean
   showHiddenFields?: boolean
+  queryHiddenFields?: boolean
   sort?: string
   where?: Where
 }

@@ -10,6 +10,7 @@ import { Auth, IncomingAuthType } from '../../auth/types';
 import { IncomingUploadType, Upload } from '../../uploads/types';
 import { IncomingCollectionVersions, SanitizedCollectionVersions } from '../../versions/types';
 import { Config as GeneratedTypes } from '../../generated-types';
+import { SanitizedGlobalConfig } from '../../globals/config/types';
 
 type Register<T = any> = (doc: T, password: string) => T;
 
@@ -18,8 +19,17 @@ interface PassportLocalModel {
   authenticate: any
 }
 
+export type BuildQueryArgs = {
+  req: PayloadRequest
+  query: unknown
+  overrideAccess?: boolean
+  queryHiddenFields?: boolean
+  type: 'collection' | 'global'
+  entity: SanitizedCollectionConfig | SanitizedGlobalConfig
+}
+
 export interface CollectionModel extends Model<any>, PaginateModel<any>, AggregatePaginateModel<any>, PassportLocalModel {
-  buildQuery: (query: unknown, locale: string, queryHiddenFields?: boolean) => Record<string, unknown>
+  buildQuery: (args: BuildQueryArgs) => Promise<[Record<string, unknown>, string]>
 }
 
 export interface AuthCollectionModel extends CollectionModel {

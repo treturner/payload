@@ -1,7 +1,8 @@
 import { Config as GeneratedTypes } from 'payload/generated-types';
+import httpStatus from 'http-status';
 import { PayloadRequest } from '../../express/types';
 import sanitizeInternalFields from '../../utilities/sanitizeInternalFields';
-import { NotFound, Forbidden } from '../../errors';
+import { APIError, Forbidden, NotFound } from '../../errors';
 import executeAccess from '../../auth/executeAccess';
 import { BeforeOperationHook, Collection } from '../config/types';
 import { Document, Where } from '../../types';
@@ -45,7 +46,6 @@ async function deleteByID<TSlug extends keyof GeneratedTypes['collections']>(inc
     req,
     req: {
       t,
-      locale,
       payload,
       payload: {
         config,
@@ -98,7 +98,17 @@ async function deleteByID<TSlug extends keyof GeneratedTypes['collections']>(inc
     (queryToBuild.where.and as Where[]).push(accessResults);
   }
 
-  const query = await Model.buildQuery(queryToBuild, locale);
+  const [query, queryError] = await Model.buildQuery({
+    req,
+    query: queryToBuild,
+    entity: collectionConfig,
+    type: 'collection',
+    overrideAccess,
+  });
+
+  if (queryError) {
+    throw new APIError(queryError, httpStatus.BAD_REQUEST);
+  }
 
   const docToDelete = await Model.findOne(query);
 

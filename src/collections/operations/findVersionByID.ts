@@ -31,7 +31,6 @@ async function findVersionByID<T extends TypeWithVersion<T> = any>(args: Argumen
     req,
     req: {
       t,
-      locale,
       payload,
     },
     disableErrors,
@@ -73,7 +72,17 @@ async function findVersionByID<T extends TypeWithVersion<T> = any>(args: Argumen
     (queryToBuild.where.and as Where[]).push(accessResults);
   }
 
-  const query = await VersionsModel.buildQuery(queryToBuild, locale);
+  const [query, queryError] = await VersionsModel.buildQuery({
+    query: queryToBuild,
+    req,
+    entity: collectionConfig,
+    type: 'collection',
+    overrideAccess,
+  });
+
+  if (queryError) {
+    throw new APIError(queryError, httpStatus.BAD_REQUEST);
+  }
 
   // /////////////////////////////////////
   // Find by ID

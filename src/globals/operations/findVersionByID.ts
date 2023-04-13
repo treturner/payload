@@ -1,7 +1,8 @@
 /* eslint-disable no-underscore-dangle */
+import httpStatus from 'http-status';
 import { PayloadRequest } from '../../express/types';
 import sanitizeInternalFields from '../../utilities/sanitizeInternalFields';
-import { Forbidden, NotFound } from '../../errors';
+import { APIError, Forbidden, NotFound } from '../../errors';
 import executeAccess from '../../auth/executeAccess';
 import { Where } from '../../types';
 import { hasWhereAccessResult } from '../../auth/types';
@@ -29,7 +30,6 @@ async function findVersionByID<T extends TypeWithVersion<T> = any>(args: Argumen
     req: {
       t,
       payload,
-      locale,
     },
     disableErrors,
     currentDepth,
@@ -66,7 +66,17 @@ async function findVersionByID<T extends TypeWithVersion<T> = any>(args: Argumen
     (queryToBuild.where.and as Where[]).push(accessResults);
   }
 
-  const query = await VersionsModel.buildQuery(queryToBuild, locale);
+  const [query, queryError] = await VersionsModel.buildQuery({
+    query: queryToBuild,
+    req,
+    type: 'global',
+    entity: globalConfig,
+    overrideAccess,
+  });
+
+  if (queryError) {
+    throw new APIError(queryError, httpStatus.BAD_REQUEST);
+  }
 
   // /////////////////////////////////////
   // Find by ID

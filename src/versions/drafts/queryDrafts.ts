@@ -1,11 +1,14 @@
 import { PaginateOptions } from 'mongoose';
+import httpStatus from 'http-status';
 import { AccessResult } from '../../config/types';
-import { Where } from '../../types';
-import { Payload } from '../../payload';
+import { PayloadRequest, Where } from '../../types';
 import { PaginatedDocs } from '../../mongoose/types';
-import { Collection, CollectionModel, TypeWithID } from '../../collections/config/types';
+import { Collection, CollectionModel, SanitizedCollectionConfig, TypeWithID } from '../../collections/config/types';
 import { hasWhereAccessResult } from '../../auth';
 import { appendVersionToQueryKey } from './appendVersionToQueryKey';
+import { buildVersionCollectionFields } from '../buildCollectionFields';
+import { Payload } from '../../payload';
+import { APIError } from '../../errors';
 
 type AggregateVersion<T> = {
   _id: string
@@ -16,8 +19,8 @@ type AggregateVersion<T> = {
 
 type Args = {
   accessResult: AccessResult
+  req: PayloadRequest
   collection: Collection
-  locale: string
   paginationOptions?: PaginateOptions
   payload: Payload
   where: Where
@@ -25,9 +28,9 @@ type Args = {
 
 export const queryDrafts = async <T extends TypeWithID>({
   accessResult,
-  collection,
-  locale,
+  req,
   payload,
+  collection,
   paginationOptions,
   where: incomingWhere,
 }: Args): Promise<PaginatedDocs<T>> => {
@@ -49,7 +52,16 @@ export const queryDrafts = async <T extends TypeWithID>({
     versionQueryToBuild.where.and.push(versionAccessResult);
   }
 
-  const versionQuery = await VersionModel.buildQuery(versionQueryToBuild, locale);
+  const [versionQuery, queryError] = await VersionModel.buildQuery({
+    query: versionQueryToBuild,
+    req,
+    type: 'collection',
+    entity: { slug: '_versions', fields: buildVersionCollectionFields(collection.config) } as SanitizedCollectionConfig,
+  });
+
+  if (queryError) {
+    throw new APIError(queryError, httpStatus.BAD_REQUEST);
+  }
 
   const aggregate = VersionModel.aggregate<AggregateVersion<T>>([
     // Sort so that newest are first
@@ -74,7 +86,7 @@ export const queryDrafts = async <T extends TypeWithID>({
   if (paginationOptions) {
     const aggregatePaginateOptions = {
       ...paginationOptions,
-      useFacet: payload.mongoOptions?.useFacet,
+      useFacet: req.payload.mongoOptions?.useFacet,
       sort: Object.entries(paginationOptions.sort)
         .reduce((sort, [incomingSortKey, order]) => {
           let key = incomingSortKey;
