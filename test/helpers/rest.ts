@@ -2,7 +2,7 @@
 import qs from 'qs';
 import fetch from 'node-fetch';
 import type { Config } from '../../src/config/types';
-import type { PaginatedDocs } from '../../src/mongoose/types';
+import type { PaginatedDocs } from '../../src/database/types';
 import type { Where } from '../../src/types';
 import { devUser } from '../credentials';
 

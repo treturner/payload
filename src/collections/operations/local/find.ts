@@ -1,5 +1,5 @@
 import { Config as GeneratedTypes } from 'payload/generated-types';
-import { PaginatedDocs } from '../../../mongoose/types';
+import type { PaginatedDocs } from '../../../database/types';
 import { Document, Where } from '../../../types';
 import { Payload } from '../../../payload';
 import { PayloadRequest } from '../../../express/types';

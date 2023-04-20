@@ -1,6 +1,4 @@
-import React, {
-  useCallback, useEffect, useState, useReducer, useRef,
-} from 'react';
+import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import qs from 'qs';
 import { useTranslation } from 'react-i18next';
 import { useConfig } from '../../../utilities/Config';
@@ -13,10 +11,10 @@ import Error from '../../Error';
 import FieldDescription from '../../FieldDescription';
 import { relationship } from '../../../../../fields/validations';
 import { Where } from '../../../../../types';
-import { PaginatedDocs } from '../../../../../mongoose/types';
+import type { PaginatedDocs } from '../../../../../database/types';
 import { useFormProcessing } from '../../Form/context';
 import optionsReducer from './optionsReducer';
-import { Props, GetResults, Value, FilterOptionsResult } from './types';
+import { FilterOptionsResult, GetResults, Props, Value } from './types';
 import { createRelationMap } from './createRelationMap';
 import { useDebouncedCallback } from '../../../../hooks/useDebouncedCallback';
 import wordBoundariesRegex from '../../../../../utilities/wordBoundariesRegex';

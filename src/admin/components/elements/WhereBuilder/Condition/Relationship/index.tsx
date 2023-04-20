@@ -1,12 +1,12 @@
-import React, { useReducer, useState, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useReducer, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useConfig } from '../../../../utilities/Config';
-import { Props, ValueWithRelation, GetResults } from './types';
+import { GetResults, Props, ValueWithRelation } from './types';
 import optionsReducer from './optionsReducer';
 import useDebounce from '../../../../../hooks/useDebounce';
 import ReactSelect from '../../../ReactSelect';
 import { Option } from '../../../ReactSelect/types';
-import { PaginatedDocs } from '../../../../../../mongoose/types';
+import type { PaginatedDocs } from '../../../../../../database/types';
 
 import './index.scss';
 

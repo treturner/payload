@@ -1,10 +1,8 @@
-import React, {
-  createContext, useCallback, useContext, useEffect, useState,
-} from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import qs from 'qs';
 import { useTranslation } from 'react-i18next';
 import { useConfig } from '../Config';
-import { PaginatedDocs } from '../../../../mongoose/types';
+import type { PaginatedDocs } from '../../../../database/types';
 import { ContextType, DocumentPermissions, Props, Version } from './types';
 import { TypeWithID } from '../../../../globals/config/types';
 import { TypeWithTimestamps } from '../../../../collections/config/types';

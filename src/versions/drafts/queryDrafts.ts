@@ -2,7 +2,7 @@ import { PaginateOptions } from 'mongoose';
 import { AccessResult } from '../../config/types';
 import { PayloadRequest, Where } from '../../types';
 import { Payload } from '../../payload';
-import { PaginatedDocs } from '../../mongoose/types';
+import type { PaginatedDocs } from '../../database/types';
 import { Collection, CollectionModel, TypeWithID } from '../../collections/config/types';
 import { hasWhereAccessResult } from '../../auth';
 import { appendVersionToQueryKey } from './appendVersionToQueryKey';

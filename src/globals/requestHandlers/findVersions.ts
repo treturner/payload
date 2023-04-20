@@ -1,8 +1,8 @@
-import { Response, NextFunction } from 'express';
+import { NextFunction, Response } from 'express';
 import httpStatus from 'http-status';
 import { PayloadRequest } from '../../express/types';
 import { TypeWithID } from '../../collections/config/types';
-import { PaginatedDocs } from '../../mongoose/types';
+import type { PaginatedDocs } from '../../database/types';
 import { SanitizedGlobalConfig } from '../config/types';
 import findVersions from '../operations/findVersions';
 import { Where } from '../../types';

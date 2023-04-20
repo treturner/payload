@@ -9,7 +9,7 @@ import { OperationArgs, Request as graphQLRequest } from 'graphql-http/lib/handl
 import { BulkOperationResult, Collection, CollectionModel } from './collections/config/types';
 import { EmailOptions, InitOptions, SanitizedConfig } from './config/types';
 import { TypeWithVersion } from './versions/types';
-import { PaginatedDocs } from './mongoose/types';
+import type { PaginatedDocs } from './database/types';
 
 import { PayloadAuthenticate } from './express/middleware/authenticate';
 import { Globals } from './globals/config/types';
