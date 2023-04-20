@@ -5,7 +5,7 @@ import pino from 'pino';
 import { InitOptions } from '../config/types';
 import { connection } from './testCredentials';
 
-const connectMongoose = async (
+const connect = async (
   url: string,
   options: InitOptions['mongoOptions'],
   logger: pino.Logger,
@@ -56,4 +56,4 @@ const connectMongoose = async (
   return mongoMemoryServer;
 };
 
-export default connectMongoose;
+export default connect;

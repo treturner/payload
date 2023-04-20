@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import buildSchema from '../mongoose/buildSchema';
+import buildSchema from '../mongoose-adapter/buildSchema';
 import { SanitizedConfig } from '../config/types';
-import getBuildQueryPlugin from '../mongoose/buildQuery';
+import getBuildQueryPlugin from '../mongoose-adapter/buildQuery';
 import { GlobalModel } from './config/types';
 
 const buildModel = (config: SanitizedConfig): GlobalModel | null => {
@@ -13,15 +13,15 @@ const buildModel = (config: SanitizedConfig): GlobalModel | null => {
     const Globals = mongoose.model('globals', globalsSchema) as unknown as GlobalModel;
 
     Object.values(config.globals).forEach((globalConfig) => {
-      const globalSchema = buildSchema(
+      const globalSchema = buildSchema({
         config,
-        globalConfig.fields,
-        {
+        fields: globalConfig.fields,
+        options: {
           options: {
             minimize: false,
           },
         },
-      );
+      });
       Globals.discriminator(globalConfig.slug, globalSchema);
     });
 

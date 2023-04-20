@@ -1,26 +1,30 @@
 import paginate from 'mongoose-paginate-v2';
 import { Schema } from 'mongoose';
-import { SanitizedConfig } from '../config/types';
-import getBuildQueryPlugin from '../mongoose/buildQuery';
-import buildSchema from '../mongoose/buildSchema';
+import type { Payload } from '../payload';
+import getBuildQueryPlugin from '../mongoose-adapter/buildQuery';
 import { SanitizedCollectionConfig } from './config/types';
 
-const buildCollectionSchema = (collection: SanitizedCollectionConfig, config: SanitizedConfig, schemaOptions = {}): Schema => {
-  const schema = buildSchema(
-    config,
-    collection.fields,
-    {
+type Args = {
+  payload: Payload
+  collection: SanitizedCollectionConfig
+  schemaOptions?: Record<string, Schema>
+}
+const buildCollectionSchema = ({ payload, collection, schemaOptions = {} }: Args): Schema => {
+  const schema = <Schema>payload.database.buildSchema({
+    config: payload.config,
+    fields: collection.fields,
+    options: {
       draftsEnabled: Boolean(typeof collection?.versions === 'object' && collection.versions.drafts),
       options: {
         timestamps: collection.timestamps !== false,
         minimize: false,
         ...schemaOptions,
       },
-      indexSortableFields: config.indexSortableFields,
+      indexSortableFields: payload.config.indexSortableFields,
     },
-  );
+  });
 
-  if (config.indexSortableFields && collection.timestamps !== false) {
+  if (payload.config.indexSortableFields && collection.timestamps !== false) {
     schema.index({ updatedAt: 1 });
     schema.index({ createdAt: 1 });
   }

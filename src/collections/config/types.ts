@@ -10,7 +10,7 @@ import { Auth, IncomingAuthType, User } from '../../auth/types';
 import { IncomingUploadType, Upload } from '../../uploads/types';
 import { IncomingCollectionVersions, SanitizedCollectionVersions } from '../../versions/types';
 import { Config as GeneratedTypes } from '../../generated-types';
-import { BuildQueryArgs } from '../../mongoose/buildQuery';
+import { BuildQueryArgs } from '../../mongoose-adapter/buildQuery';
 
 type Register<T = any> = (doc: T, password: string) => T;
 

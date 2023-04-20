@@ -9,7 +9,7 @@ import { OperationArgs, Request as graphQLRequest } from 'graphql-http/lib/handl
 import { BulkOperationResult, Collection, CollectionModel } from './collections/config/types';
 import { EmailOptions, InitOptions, SanitizedConfig } from './config/types';
 import { TypeWithVersion } from './versions/types';
-import type { PaginatedDocs } from './database/types';
+import type { DatabaseAdapter, PaginatedDocs } from './database/types';
 
 import { PayloadAuthenticate } from './express/middleware/authenticate';
 import { Globals } from './globals/config/types';
@@ -50,7 +50,7 @@ import { Result as LoginResult } from './auth/operations/login';
 import { Options as FindGlobalOptions } from './globals/operations/local/findOne';
 import { Options as UpdateGlobalOptions } from './globals/operations/local/update';
 
-import connectMongoose from './mongoose/connect';
+import connectMongoose from './mongoose-adapter/connect';
 import initCollections from './collections/initLocal';
 import initGlobals from './globals/initLocal';
 import registerSchema from './graphql/registerSchema';
@@ -63,6 +63,7 @@ import PreferencesModel from './preferences/model';
 import findConfig from './config/find';
 
 import { defaults as emailDefaults } from './email/defaults';
+import { mongooseAdapter } from './mongoose-adapter';
 
 /**
  * @description Payload
@@ -112,6 +113,8 @@ export class BasePayload<TGeneratedTypes extends GeneratedTypes> {
 
   router?: Router
 
+  database: DatabaseAdapter<unknown>
+
   types: {
     blockTypes: any;
     blockInputTypes: any;
@@ -145,6 +148,7 @@ export class BasePayload<TGeneratedTypes extends GeneratedTypes> {
     this.logger = Logger('payload', options.loggerOptions);
     this.mongoURL = options.mongoURL;
     this.mongoOptions = options.mongoOptions;
+    this.database = mongooseAdapter;
 
     if (this.mongoURL) {
       mongoose.set('strictQuery', false);

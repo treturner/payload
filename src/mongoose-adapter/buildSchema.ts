@@ -1,49 +1,17 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable class-methods-use-this */
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable no-use-before-define */
-import { IndexOptions, Schema, SchemaOptions, SchemaTypeOptions } from 'mongoose';
-import { SanitizedConfig } from '../config/types';
+import { IndexOptions, Schema, SchemaTypeOptions } from 'mongoose';
+import { BuildSchema, BuildSchemaOptions, FieldGeneratorFunction, FieldToSchemaMap } from '../database/types';
 import {
-  ArrayField,
   Block,
-  BlockField,
-  CheckboxField,
-  CodeField,
-  CollapsibleField,
-  DateField,
-  EmailField,
   Field,
   FieldAffectingData,
-  fieldAffectsData, fieldIsLocalized,
+  fieldAffectsData,
+  fieldIsLocalized,
   fieldIsPresentationalOnly,
-  GroupField,
-  JSONField,
   NonPresentationalField,
-  NumberField,
-  PointField,
-  RadioField,
-  RelationshipField,
-  RichTextField,
-  RowField,
-  SelectField,
   Tab,
   tabHasName,
-  TabsField,
-  TextareaField,
-  TextField, UnnamedTab,
-  UploadField,
+  UnnamedTab,
 } from '../fields/config/types';
-
-export type BuildSchemaOptions = {
-  options?: SchemaOptions
-  allowIDField?: boolean
-  disableUnique?: boolean
-  draftsEnabled?: boolean
-  indexSortableFields?: boolean
-}
-
-type FieldSchemaGenerator = (field: Field, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions) => void;
 
 const formatBaseSchema = (field: FieldAffectingData, buildSchemaOptions: BuildSchemaOptions) => {
   const { disableUnique, draftsEnabled, indexSortableFields } = buildSchemaOptions;
@@ -79,30 +47,33 @@ const localizeSchema = (entity: NonPresentationalField | Tab, schema, localizati
   return schema;
 };
 
-const buildSchema = (config: SanitizedConfig, configFields: Field[], buildSchemaOptions: BuildSchemaOptions = {}): Schema => {
-  const { allowIDField, options } = buildSchemaOptions;
-  let fields = {};
-
-  let schemaFields = configFields;
+const buildSchema: BuildSchema<Schema> = ({
+  config,
+  fields: incomingFields,
+  options = {},
+}) => {
+  const { allowIDField, options: schemaOptions } = options;
+  let schemaFields = {};
+  let fields = incomingFields;
 
   if (!allowIDField) {
-    const idField = schemaFields.find((field) => fieldAffectsData(field) && field.name === 'id');
+    const idField = fields.find((field) => fieldAffectsData(field) && field.name === 'id');
     if (idField) {
-      fields = {
+      schemaFields = {
         _id: idField.type === 'number' ? Number : String,
       };
-      schemaFields = schemaFields.filter((field) => !(fieldAffectsData(field) && field.name === 'id'));
+      fields = fields.filter((field) => !(fieldAffectsData(field) && field.name === 'id'));
     }
   }
 
-  const schema = new Schema(fields, options);
+  const schema = new Schema(schemaFields, schemaOptions);
 
-  schemaFields.forEach((field) => {
+  fields.forEach((field) => {
     if (!fieldIsPresentationalOnly(field)) {
-      const addFieldSchema: FieldSchemaGenerator = fieldToSchemaMap[field.type];
+      const addFieldSchema: FieldGeneratorFunction<Schema, Field> = fieldToSchemaMap[field.type];
 
       if (addFieldSchema) {
-        addFieldSchema(field, schema, config, buildSchemaOptions);
+        addFieldSchema({ field, schema, config, options });
       }
     }
   });
@@ -110,57 +81,92 @@ const buildSchema = (config: SanitizedConfig, configFields: Field[], buildSchema
   return schema;
 };
 
-const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
-  number: (field: NumberField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
-    const baseSchema = { ...formatBaseSchema(field, buildSchemaOptions), type: Number };
+const fieldToSchemaMap: FieldToSchemaMap<Schema> = {
+  number: ({ field, schema, config, options }) => {
+    const baseSchema = { ...formatBaseSchema(field, options), type: Number };
 
     schema.add({
       [field.name]: localizeSchema(field, baseSchema, config.localization),
     });
   },
-  text: (field: TextField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
-    const baseSchema = { ...formatBaseSchema(field, buildSchemaOptions), type: String };
+  text: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
+    const baseSchema = { ...formatBaseSchema(field, options), type: String };
 
     schema.add({
       [field.name]: localizeSchema(field, baseSchema, config.localization),
     });
   },
-  email: (field: EmailField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
-    const baseSchema = { ...formatBaseSchema(field, buildSchemaOptions), type: String };
+  email: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
+    const baseSchema = { ...formatBaseSchema(field, options), type: String };
 
     schema.add({
       [field.name]: localizeSchema(field, baseSchema, config.localization),
     });
   },
-  textarea: (field: TextareaField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
-    const baseSchema = { ...formatBaseSchema(field, buildSchemaOptions), type: String };
+  textarea: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
+    const baseSchema = { ...formatBaseSchema(field, options), type: String };
 
     schema.add({
       [field.name]: localizeSchema(field, baseSchema, config.localization),
     });
   },
-  richText: (field: RichTextField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
-    const baseSchema = { ...formatBaseSchema(field, buildSchemaOptions), type: Schema.Types.Mixed };
+  richText: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
+    const baseSchema = { ...formatBaseSchema(field, options), type: Schema.Types.Mixed };
 
     schema.add({
       [field.name]: localizeSchema(field, baseSchema, config.localization),
     });
   },
-  code: (field: CodeField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
-    const baseSchema = { ...formatBaseSchema(field, buildSchemaOptions), type: String };
+  code: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
+    const baseSchema = { ...formatBaseSchema(field, options), type: String };
 
     schema.add({
       [field.name]: localizeSchema(field, baseSchema, config.localization),
     });
   },
-  json: (field: JSONField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
-    const baseSchema = { ...formatBaseSchema(field, buildSchemaOptions), type: Schema.Types.Mixed };
+  json: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
+    const baseSchema = { ...formatBaseSchema(field, options), type: Schema.Types.Mixed };
 
     schema.add({
       [field.name]: localizeSchema(field, baseSchema, config.localization),
     });
   },
-  point: (field: PointField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
+  point: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
     const baseSchema: SchemaTypeOptions<unknown> = {
       type: {
         type: String,
@@ -172,7 +178,7 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
         default: field.defaultValue || undefined,
       },
     };
-    if (buildSchemaOptions.disableUnique && field.unique && field.localized) {
+    if (options.disableUnique && field.unique && field.localized) {
       baseSchema.coordinates.sparse = true;
     }
 
@@ -182,7 +188,7 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
 
     if (field.index === true || field.index === undefined) {
       const indexOptions: IndexOptions = {};
-      if (!buildSchemaOptions.disableUnique && field.unique) {
+      if (!options.disableUnique && field.unique) {
         indexOptions.sparse = true;
         indexOptions.unique = true;
       }
@@ -195,9 +201,14 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
       }
     }
   },
-  radio: (field: RadioField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
+  radio: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
     const baseSchema = {
-      ...formatBaseSchema(field, buildSchemaOptions),
+      ...formatBaseSchema(field, options),
       type: String,
       enum: field.options.map((option) => {
         if (typeof option === 'object') return option.value;
@@ -209,23 +220,38 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
       [field.name]: localizeSchema(field, baseSchema, config.localization),
     });
   },
-  checkbox: (field: CheckboxField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
-    const baseSchema = { ...formatBaseSchema(field, buildSchemaOptions), type: Boolean };
+  checkbox: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
+    const baseSchema = { ...formatBaseSchema(field, options), type: Boolean };
 
     schema.add({
       [field.name]: localizeSchema(field, baseSchema, config.localization),
     });
   },
-  date: (field: DateField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
-    const baseSchema = { ...formatBaseSchema(field, buildSchemaOptions), type: Date };
+  date: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
+    const baseSchema = { ...formatBaseSchema(field, options), type: Date };
 
     schema.add({
       [field.name]: localizeSchema(field, baseSchema, config.localization),
     });
   },
-  upload: (field: UploadField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
+  upload: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
     const baseSchema = {
-      ...formatBaseSchema(field, buildSchemaOptions),
+      ...formatBaseSchema(field, options),
       type: Schema.Types.Mixed,
       ref: field.relationTo,
     };
@@ -234,7 +260,12 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
       [field.name]: localizeSchema(field, baseSchema, config.localization),
     });
   },
-  relationship: (field: RelationshipField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions) => {
+  relationship: ({
+    field,
+    schema,
+    config,
+    options,
+  }) => {
     const hasManyRelations = Array.isArray(field.relationTo);
     let schemaToReturn: { [key: string]: any } = {};
 
@@ -245,7 +276,7 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
 
           if (hasManyRelations) {
             localeSchema = {
-              ...formatBaseSchema(field, buildSchemaOptions),
+              ...formatBaseSchema(field, options),
               type: Schema.Types.Mixed,
               _id: false,
               value: {
@@ -256,7 +287,7 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
             };
           } else {
             localeSchema = {
-              ...formatBaseSchema(field, buildSchemaOptions),
+              ...formatBaseSchema(field, options),
               type: Schema.Types.Mixed,
               ref: field.relationTo,
             };
@@ -271,7 +302,7 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
       };
     } else if (hasManyRelations) {
       schemaToReturn = {
-        ...formatBaseSchema(field, buildSchemaOptions),
+        ...formatBaseSchema(field, options),
         type: Schema.Types.Mixed,
         _id: false,
         value: {
@@ -289,7 +320,7 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
       }
     } else {
       schemaToReturn = {
-        ...formatBaseSchema(field, buildSchemaOptions),
+        ...formatBaseSchema(field, options),
         type: Schema.Types.Mixed,
         ref: field.relationTo,
       };
@@ -306,41 +337,61 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
       [field.name]: schemaToReturn,
     });
   },
-  row: (field: RowField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
+  row: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
     field.fields.forEach((subField: Field) => {
-      const addFieldSchema: FieldSchemaGenerator = fieldToSchemaMap[subField.type];
+      const addFieldSchema: FieldGeneratorFunction<Schema, Field> = fieldToSchemaMap[subField.type];
 
       if (addFieldSchema) {
-        addFieldSchema(subField, schema, config, buildSchemaOptions);
+        addFieldSchema({ field: subField, schema, config, options });
       }
     });
   },
-  collapsible: (field: CollapsibleField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
+  collapsible: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
     field.fields.forEach((subField: Field) => {
-      const addFieldSchema: FieldSchemaGenerator = fieldToSchemaMap[subField.type];
+      const addFieldSchema: FieldGeneratorFunction<Schema, Field> = fieldToSchemaMap[subField.type];
 
       if (addFieldSchema) {
-        addFieldSchema(subField, schema, config, buildSchemaOptions);
+        addFieldSchema({
+          field: subField,
+          schema,
+          config,
+          options,
+        });
       }
     });
   },
-  tabs: (field: TabsField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
+  tabs: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
     field.tabs.forEach((tab) => {
       if (tabHasName(tab)) {
         const baseSchema = {
-          type: buildSchema(
+          type: buildSchema({
             config,
-            tab.fields,
-            {
+            fields: tab.fields,
+            options: {
               options: {
                 _id: false,
                 id: false,
                 minimize: false,
               },
-              disableUnique: buildSchemaOptions.disableUnique,
-              draftsEnabled: buildSchemaOptions.draftsEnabled,
+              disableUnique: options.disableUnique,
+              draftsEnabled: options.draftsEnabled,
             },
-          ),
+          }),
         };
 
         schema.add({
@@ -348,66 +399,86 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
         });
       } else {
         (tab as UnnamedTab).fields.forEach((subField: Field) => {
-          const addFieldSchema: FieldSchemaGenerator = fieldToSchemaMap[subField.type];
+          const addFieldSchema: FieldGeneratorFunction<Schema, Field> = fieldToSchemaMap[subField.type];
 
           if (addFieldSchema) {
-            addFieldSchema(subField, schema, config, buildSchemaOptions);
+            addFieldSchema({
+              field: subField,
+              schema,
+              config,
+              options,
+            });
           }
         });
       }
     });
   },
-  array: (field: ArrayField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions) => {
+  array: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
     const baseSchema = {
-      ...formatBaseSchema(field, buildSchemaOptions),
+      ...formatBaseSchema(field, options),
       default: undefined,
-      type: [buildSchema(
+      type: [buildSchema({
         config,
-        field.fields,
-        {
+        fields: field.fields,
+        options: {
           options: {
             _id: false,
             id: false,
             minimize: false,
           },
           allowIDField: true,
-          disableUnique: buildSchemaOptions.disableUnique,
-          draftsEnabled: buildSchemaOptions.draftsEnabled,
+          disableUnique: options.disableUnique,
+          draftsEnabled: options.draftsEnabled,
         },
-      )],
+      })],
     };
 
     schema.add({
       [field.name]: localizeSchema(field, baseSchema, config.localization),
     });
   },
-  group: (field: GroupField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
-    const formattedBaseSchema = formatBaseSchema(field, buildSchemaOptions);
+  group: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
+    const formattedBaseSchema = formatBaseSchema(field, options);
 
     const baseSchema = {
       ...formattedBaseSchema,
-      type: buildSchema(
+      type: buildSchema({
         config,
-        field.fields,
-        {
+        fields: field.fields,
+        options: {
           options: {
             _id: false,
             id: false,
             minimize: false,
           },
-          disableUnique: buildSchemaOptions.disableUnique,
-          draftsEnabled: buildSchemaOptions.draftsEnabled,
+          disableUnique: options.disableUnique,
+          draftsEnabled: options.draftsEnabled,
         },
-      ),
+      }),
     };
 
     schema.add({
       [field.name]: localizeSchema(field, baseSchema, config.localization),
     });
   },
-  select: (field: SelectField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
+  select: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
     const baseSchema = {
-      ...formatBaseSchema(field, buildSchemaOptions),
+      ...formatBaseSchema(field, options),
       type: String,
       enum: field.options.map((option) => {
         if (typeof option === 'object') return option.value;
@@ -415,7 +486,7 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
       }),
     };
 
-    if (buildSchemaOptions.draftsEnabled || !field.required) {
+    if (options.draftsEnabled || !field.required) {
       baseSchema.enum.push(null);
     }
 
@@ -427,7 +498,12 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
       ),
     });
   },
-  blocks: (field: BlockField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
+  blocks: ({
+    field,
+    schema,
+    config,
+    options,
+  }): void => {
     const fieldSchema = {
       default: undefined,
       type: [new Schema({}, { _id: false, discriminatorKey: 'blockType' })],
@@ -441,9 +517,14 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
       const blockSchema = new Schema({}, { _id: false, id: false });
 
       blockItem.fields.forEach((blockField) => {
-        const addFieldSchema: FieldSchemaGenerator = fieldToSchemaMap[blockField.type];
+        const addFieldSchema: FieldGeneratorFunction<Schema, Field> = fieldToSchemaMap[blockField.type];
         if (addFieldSchema) {
-          addFieldSchema(blockField, blockSchema, config, buildSchemaOptions);
+          addFieldSchema({
+            field: blockField,
+            schema: blockSchema,
+            config,
+            options,
+          });
         }
       });
 

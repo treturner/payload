@@ -1,20 +1,24 @@
-import mongoose, { UpdateAggregationStage, UpdateQuery } from 'mongoose';
+/* eslint-disable no-param-reassign */
+import mongoose, { Schema, UpdateAggregationStage, UpdateQuery } from 'mongoose';
 import paginate from 'mongoose-paginate-v2';
 import passportLocalMongoose from 'passport-local-mongoose';
 import mongooseAggregatePaginate from 'mongoose-aggregate-paginate-v2';
 import { buildVersionCollectionFields } from '../versions/buildCollectionFields';
-import getBuildQueryPlugin from '../mongoose/buildQuery';
+import getBuildQueryPlugin from '../mongoose-adapter/buildQuery';
 import buildCollectionSchema from './buildSchema';
-import buildSchema from '../mongoose/buildSchema';
 import { CollectionModel, SanitizedCollectionConfig } from './config/types';
-import { Payload } from '../payload';
+import type { Payload } from '../payload';
 import { getVersionsModelName } from '../versions/getVersionsModelName';
 
-export default function initCollectionsLocal(ctx: Payload): void {
-  ctx.config.collections = ctx.config.collections.map((collection: SanitizedCollectionConfig) => {
+export default function initCollectionsLocal(payload: Payload): void {
+  const { config } = payload;
+  config.collections = config.collections.map((collection: SanitizedCollectionConfig) => {
     const formattedCollection = collection;
 
-    const schema = buildCollectionSchema(formattedCollection, ctx.config);
+    const schema = buildCollectionSchema({
+      payload,
+      collection: formattedCollection,
+    });
 
     if (collection.auth && !collection.auth.disableLocalStrategy) {
       schema.plugin(passportLocalMongoose, {
@@ -64,10 +68,10 @@ export default function initCollectionsLocal(ctx: Payload): void {
 
       const versionCollectionFields = buildVersionCollectionFields(collection);
 
-      const versionSchema = buildSchema(
-        ctx.config,
-        versionCollectionFields,
-        {
+      const versionSchema = <Schema>payload.database.buildSchema({
+        config,
+        fields: versionCollectionFields,
+        options: {
           disableUnique: true,
           draftsEnabled: true,
           options: {
@@ -75,7 +79,7 @@ export default function initCollectionsLocal(ctx: Payload): void {
             minimize: false,
           },
         },
-      );
+      });
 
       if (collection.indexes) {
         collection.indexes.forEach((index) => {
@@ -95,11 +99,11 @@ export default function initCollectionsLocal(ctx: Payload): void {
         versionSchema.plugin(mongooseAggregatePaginate);
       }
 
-      ctx.versions[collection.slug] = mongoose.model(versionModelName, versionSchema) as CollectionModel;
+      payload.versions[collection.slug] = mongoose.model(versionModelName, versionSchema) as CollectionModel;
     }
 
 
-    ctx.collections[formattedCollection.slug] = {
+    payload.collections[formattedCollection.slug] = {
       Model: mongoose.model(formattedCollection.slug, schema) as CollectionModel,
       config: formattedCollection,
     };

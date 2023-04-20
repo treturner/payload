@@ -5,7 +5,7 @@ import sanitizeInternalFields from '../../utilities/sanitizeInternalFields';
 import { Collection, CollectionModel } from '../config/types';
 import { hasWhereAccessResult } from '../../auth/types';
 import flattenWhereConstraints from '../../utilities/flattenWhereConstraints';
-import { buildSortParam } from '../../mongoose/buildSortParam';
+import { buildSortParam } from '../../mongoose-adapter/buildSortParam';
 import type { PaginatedDocs } from '../../database/types';
 import { TypeWithVersion } from '../../versions/types';
 import { afterRead } from '../../fields/hooks/afterRead';

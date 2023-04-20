@@ -6,7 +6,7 @@ import { Collection, TypeWithID } from '../config/types';
 import type { PaginatedDocs } from '../../database/types';
 import { hasWhereAccessResult } from '../../auth/types';
 import flattenWhereConstraints from '../../utilities/flattenWhereConstraints';
-import { buildSortParam } from '../../mongoose/buildSortParam';
+import { buildSortParam } from '../../mongoose-adapter/buildSortParam';
 import { AccessResult } from '../../config/types';
 import { afterRead } from '../../fields/hooks/afterRead';
 import { queryDrafts } from '../../versions/drafts/queryDrafts';
