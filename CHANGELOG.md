@@ -1,5 +1,25 @@
 
 
+## [1.8.2](https://github.com/payloadcms/payload/compare/v1.8.1...v1.8.2) (2023-05-10)
+
+
+### Bug Fixes
+
+* react webpack alias ([1732bb8](https://github.com/payloadcms/payload/commit/1732bb877ca9688fc87cf44fbf63d05b6be23de2))
+
+## [1.8.1](https://github.com/payloadcms/payload/compare/v1.8.0...v1.8.1) (2023-05-10)
+
+
+### Bug Fixes
+
+* add dotenv.config() to test/dev.ts ([#2646](https://github.com/payloadcms/payload/issues/2646)) ([7963e75](https://github.com/payloadcms/payload/commit/7963e7540f4899c16a49b47cf5145f46ea0c71cf))
+
+
+### Features
+
+* allow users to manipulate images without needing to resize them ([#2574](https://github.com/payloadcms/payload/issues/2574)) ([8531687](https://github.com/payloadcms/payload/commit/85316879cd97933ed34588b0cee72798964de281))
+* export additional graphql types ([#2610](https://github.com/payloadcms/payload/issues/2610)) ([3f185cb](https://github.com/payloadcms/payload/commit/3f185cb18b9677654b92921267ffef408388d0d1))
+
 # [1.8.0](https://github.com/payloadcms/payload/compare/v1.7.5...v1.8.0) (2023-05-09)
 
 

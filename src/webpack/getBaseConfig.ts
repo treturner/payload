@@ -57,7 +57,6 @@ export default (config: SanitizedConfig): Configuration => ({
       payload$: mockModulePath,
       'payload-user-css': config.admin.css,
       dotenv: mockDotENVPath,
-      react: path.resolve(__dirname, '../../node_modules/react'),
     },
     extensions: ['.ts', '.tsx', '.js', '.json'],
   },
