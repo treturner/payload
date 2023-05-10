@@ -108,7 +108,7 @@ Similar to the `relationship` element, the `upload` element is a user-friendly w
 
 <Banner type="success">
   <strong>Tip:</strong><br/>
-  Collections are automatically allowed to be selected within the Rich Text relationship and upload elements by default. If you want to disable a collection from being able to be referenced in Rich Text fields, set the collection admin option of <strong>enableRichTextRelationship</strong> to false.
+  Collections are automatically allowed to be selected within the Rich Text relationship and upload elements by default. If you want to disable a collection from being able to be referenced in Rich Text fields, set the collection admin options of <strong>enableRichTextLink</strong> and <strong>enableRichTextRelationship</strong> to false.
 </Banner>
 
 Relationship and Upload elements are populated dynamically into your Rich Text field' content. Within the REST and Local APIs, any present RichText `relationship` or `upload` elements will respect the `depth` option that you pass, and will be populated accordingly. In GraphQL, each `richText` field accepts an argument of `depth` for you to utilize.
@@ -141,7 +141,7 @@ Custom `Leaf` objects follow a similar pattern but require you to define the `Le
 ```ts
 import { CollectionConfig } from 'payload/types';
 
-const ExampleCollection: CollectionConfig = {
+export const ExampleCollection: CollectionConfig = {
   slug: 'example-collection',
   fields: [
     {
@@ -371,5 +371,4 @@ import type {
   RichTextCustomElement,
   RichTextCustomLeaf,
 } from 'payload/types';
-
 ```

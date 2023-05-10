@@ -3,14 +3,15 @@ import { DeepRequired } from 'ts-essentials';
 import { AggregatePaginateModel, IndexDefinition, IndexOptions, Model, PaginateModel } from 'mongoose';
 import { GraphQLInputObjectType, GraphQLNonNull, GraphQLObjectType } from 'graphql';
 import { Response } from 'express';
+import { Config as GeneratedTypes } from 'payload/generated-types';
 import { Access, Endpoint, EntityDescription, GeneratePreviewURL } from '../../config/types';
 import { Field } from '../../fields/config/types';
 import { PayloadRequest } from '../../express/types';
 import { Auth, IncomingAuthType, User } from '../../auth/types';
 import { IncomingUploadType, Upload } from '../../uploads/types';
 import { IncomingCollectionVersions, SanitizedCollectionVersions } from '../../versions/types';
-import { Config as GeneratedTypes } from '../../generated-types';
 import { BuildQueryArgs } from '../../mongoose/buildQuery';
+import { CustomPreviewButtonProps, CustomPublishButtonProps, CustomSaveButtonProps, CustomSaveDraftButtonProps } from '../../admin/components/elements/types';
 
 type Register<T = any> = (doc: T, password: string) => T;
 
@@ -193,6 +194,31 @@ export type CollectionAdminOptions = {
    * Custom admin components
    */
   components?: {
+    /**
+       * Components within the edit view
+       */
+    edit?: {
+      /**
+       * Replaces the "Save" button
+       * + drafts must be disabled
+       */
+      SaveButton?: CustomSaveButtonProps
+      /**
+       * Replaces the "Publish" button
+       * + drafts must be enabled
+       */
+      PublishButton?: CustomPublishButtonProps
+      /**
+       * Replaces the "Save Draft" button
+       * + drafts must be enabled
+       * + autosave must be disabled
+       */
+      SaveDraftButton?: CustomSaveDraftButtonProps
+      /**
+       * Replaces the "Preview" button
+       */
+      PreviewButton?: CustomPreviewButtonProps
+    },
     views?: {
       Edit?: React.ComponentType<any>
       List?: React.ComponentType<any>
@@ -202,6 +228,7 @@ export type CollectionAdminOptions = {
     defaultLimit?: number
     limits?: number[]
   }
+  enableRichTextLink?: boolean
   enableRichTextRelationship?: boolean
   /**
    * Function to generate custom preview URL
@@ -312,7 +339,7 @@ export type CollectionConfig = {
   custom?: Record<string, any>;
 };
 
-export interface SanitizedCollectionConfig extends Omit<DeepRequired<CollectionConfig>, 'auth' | 'upload' | 'fields' | 'versions'| 'endpoints'> {
+export interface SanitizedCollectionConfig extends Omit<DeepRequired<CollectionConfig>, 'auth' | 'upload' | 'fields' | 'versions' | 'endpoints'> {
   auth: Auth;
   upload: Upload;
   fields: Field[];
@@ -325,6 +352,7 @@ export type Collection = {
   config: SanitizedCollectionConfig;
   graphQL?: {
     type: GraphQLObjectType
+    paginatedType: GraphQLObjectType
     JWT: GraphQLObjectType
     versionType: GraphQLObjectType
     whereInputType: GraphQLInputObjectType

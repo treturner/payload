@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import qs from 'qs';
 import { useTranslation } from 'react-i18next';
+import { useParams } from 'react-router-dom';
 import { useConfig } from '../Config';
 import type { PaginatedDocs } from '../../../../database/types';
 import { ContextType, DocumentPermissions, Props, Version } from './types';
@@ -19,8 +20,12 @@ export const DocumentInfoProvider: React.FC<Props> = ({
   children,
   global,
   collection,
-  id,
+  id: idFromProps,
+  idFromParams: getIDFromParams,
 }) => {
+  const { id: idFromParams } = useParams<{id: string}>();
+  const id = idFromProps || (getIDFromParams ? idFromParams : null);
+
   const { serverURL, routes: { api } } = useConfig();
   const { getPreference } = usePreferences();
   const { i18n } = useTranslation();
