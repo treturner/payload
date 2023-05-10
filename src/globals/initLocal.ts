@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 import mongoose, { Schema } from 'mongoose';
 import paginate from 'mongoose-paginate-v2';
-import getBuildQueryPlugin from '../mongoose-adapter/buildQuery';
+import getBuildQueryPlugin from '../mongoose/buildQuery';
 import buildModel from './buildModel';
 import type { Payload } from '../payload';
 import { getVersionsModelName } from '../versions/getVersionsModelName';

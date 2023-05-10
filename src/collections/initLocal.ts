@@ -4,7 +4,7 @@ import paginate from 'mongoose-paginate-v2';
 import passportLocalMongoose from 'passport-local-mongoose';
 import mongooseAggregatePaginate from 'mongoose-aggregate-paginate-v2';
 import { buildVersionCollectionFields } from '../versions/buildCollectionFields';
-import getBuildQueryPlugin from '../mongoose-adapter/buildQuery';
+import getBuildQueryPlugin from '../mongoose/buildQuery';
 import buildCollectionSchema from './buildSchema';
 import { CollectionModel, SanitizedCollectionConfig } from './config/types';
 import type { Payload } from '../payload';

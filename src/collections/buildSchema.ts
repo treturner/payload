@@ -1,7 +1,7 @@
 import paginate from 'mongoose-paginate-v2';
 import { Schema } from 'mongoose';
 import type { Payload } from '../payload';
-import getBuildQueryPlugin from '../mongoose-adapter/buildQuery';
+import getBuildQueryPlugin from '../mongoose/buildQuery';
 import { SanitizedCollectionConfig } from './config/types';
 
 type Args = {

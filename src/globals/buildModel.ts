@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import buildSchema from '../mongoose-adapter/buildSchema';
+import buildSchema from '../mongoose/buildSchema';
 import { SanitizedConfig } from '../config/types';
-import getBuildQueryPlugin from '../mongoose-adapter/buildQuery';
+import getBuildQueryPlugin from '../mongoose/buildQuery';
 import { GlobalModel } from './config/types';
 
 const buildModel = (config: SanitizedConfig): GlobalModel | null => {
