@@ -1,5 +1,5 @@
 import { SchemaOptions } from 'mongoose';
-import { SanitizedConfig } from '../config/types';
+import { Config, SanitizedConfig } from '../config/types';
 import {
   ArrayField,
   BlockField,
@@ -26,6 +26,7 @@ import {
 
 export interface DatabaseAdapter<TSchema> {
   buildSchema: BuildSchema<TSchema>
+  buildSortParam: BuildSortParam
 }
 
 export type BuildSchema<TSchema> = (args: {
@@ -40,6 +41,17 @@ export type BuildSchemaOptions = {
   disableUnique?: boolean
   draftsEnabled?: boolean
   indexSortableFields?: boolean
+}
+
+export type BuildSortParam = (args: {
+  sort: string
+  config: Config
+  fields: Field[]
+  timestamps: boolean
+  locale: string
+}) => {
+  sortProperty: string
+  sortOrder: string
 }
 
 export type PaginatedDocs<T = any> = {

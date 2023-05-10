@@ -5,7 +5,6 @@ import sanitizeInternalFields from '../../utilities/sanitizeInternalFields';
 import { Collection, TypeWithID } from '../config/types';
 import type { PaginatedDocs } from '../../database/types';
 import flattenWhereConstraints from '../../utilities/flattenWhereConstraints';
-import { buildSortParam } from '../../mongoose/buildSortParam';
 import { AccessResult } from '../../config/types';
 import { afterRead } from '../../fields/hooks/afterRead';
 import { queryDrafts } from '../../versions/drafts/queryDrafts';
@@ -111,7 +110,7 @@ async function find<T extends TypeWithID & Record<string, unknown>>(
   // Find
   // /////////////////////////////////////
 
-  const [sortProperty, sortOrder] = buildSortParam({
+  const { sortProperty, sortOrder } = payload.database.buildSortParam({
     sort: args.sort ?? collectionConfig.defaultSort,
     config: payload.config,
     fields: collectionConfig.fields,

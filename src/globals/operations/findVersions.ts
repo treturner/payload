@@ -4,7 +4,6 @@ import executeAccess from '../../auth/executeAccess';
 import sanitizeInternalFields from '../../utilities/sanitizeInternalFields';
 import type { PaginatedDocs } from '../../database/types';
 import flattenWhereConstraints from '../../utilities/flattenWhereConstraints';
-import { buildSortParam } from '../../mongoose/buildSortParam';
 import { SanitizedGlobalConfig } from '../config/types';
 import { afterRead } from '../../fields/hooks/afterRead';
 import { buildVersionGlobalFields } from '../../versions/buildGlobalFields';
@@ -67,7 +66,7 @@ async function findVersions<T extends TypeWithVersion<T>>(
   // Find
   // /////////////////////////////////////
 
-  const [sortProperty, sortOrder] = buildSortParam({
+  const { sortProperty, sortOrder } = payload.database.buildSortParam({
     sort: args.sort || '-updatedAt',
     fields: buildVersionGlobalFields(globalConfig),
     timestamps: true,
