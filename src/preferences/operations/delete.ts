@@ -32,7 +32,7 @@ async function deleteOperation(args: PreferenceRequest): Promise<Document> {
     user: user.id,
     userCollection: user.collection,
   };
-
+  // TODO: replace with payload.db.deleteOne
   const result = await Model.findOneAndDelete(filter);
 
   return result;

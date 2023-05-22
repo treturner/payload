@@ -40,6 +40,7 @@ async function registerFirstUser<TSlug extends keyof GeneratedTypes['collections
     data,
   } = args;
 
+  // TODO: use findOne
   const count = await Model.countDocuments({});
 
   if (count >= 1) throw new Forbidden(req.t);

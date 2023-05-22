@@ -6,7 +6,7 @@ import { PayloadRequest } from '../../express/types';
 import getCookieExpiration from '../../utilities/getCookieExpiration';
 import isLocked from '../isLocked';
 import sanitizeInternalFields from '../../utilities/sanitizeInternalFields';
-import { Field, fieldHasSubFields, fieldAffectsData } from '../../fields/config/types';
+import { Field, fieldAffectsData, fieldHasSubFields } from '../../fields/config/types';
 import { User } from '../types';
 import { Collection } from '../../collections/config/types';
 import { afterRead } from '../../fields/hooks/afterRead';
@@ -75,6 +75,7 @@ async function login<TSlug extends keyof GeneratedTypes['collections']>(
 
   const email = unsanitizedEmail ? (unsanitizedEmail as string).toLowerCase().trim() : null;
 
+  // TODO: replace with findOne
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore Improper typing in library, additional args should be optional
   const userDoc = await Model.findByUsername(email);

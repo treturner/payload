@@ -225,6 +225,7 @@ async function update<TSlug extends keyof GeneratedTypes['collections']>(
 
       if (!shouldSaveDraft) {
         try {
+          // TODO: replace with payload.db.updateOne
           result = await Model.findByIdAndUpdate(
             { _id: id },
             result,

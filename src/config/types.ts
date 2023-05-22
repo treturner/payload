@@ -10,15 +10,12 @@ import React from 'react';
 import { LoggerOptions } from 'pino';
 import type { InitOptions as i18nInitOptions } from 'i18next';
 import { Payload } from '../payload';
-import {
-  AfterErrorHook,
-  CollectionConfig,
-  SanitizedCollectionConfig,
-} from '../collections/config/types';
+import { AfterErrorHook, CollectionConfig, SanitizedCollectionConfig } from '../collections/config/types';
 import { GlobalConfig, SanitizedGlobalConfig } from '../globals/config/types';
 import { PayloadRequest } from '../express/types';
 import { Where } from '../types';
 import { User } from '../auth/types';
+import { DatabaseAdapter } from '../database/types';
 
 type Email = {
   fromName: string;
@@ -79,9 +76,15 @@ export type GraphQLExtension = (
 export type InitOptions = {
   /** Express app for Payload to use */
   express?: Express;
-  /** Mongo connection URL, starts with `mongo` */
+  /**
+   * @deprecated moving to database.mongoURL
+   * Mongo connection URL, starts with `mongo`
+   */
   mongoURL: string | false;
-  /** Extra configuration options that will be passed to Mongo */
+  /**
+   * @deprecated moving to database.mongoOptions
+   * Extra configuration options that will be passed to Mongo
+   */
   mongoOptions?: ConnectOptions & {
     /** Set false to disable $facet aggregation in non-supporting databases, Defaults to true */
     useFacet?: boolean
@@ -347,6 +350,10 @@ export type Config = {
    * @see https://payloadcms.com/docs/configuration/collections#collection-configs
    */
   collections?: CollectionConfig[];
+  /**
+   * The database implementation to use
+   */
+  database: DatabaseAdapter<unknown>
   /** Custom REST endpoints */
   endpoints?: Endpoint[];
   /**
@@ -550,4 +557,4 @@ export type EntityDescription =
   | string
   | Record<string, string>
   | (() => string)
-  | React.ComponentType<any>;
+  | React.ComponentType<any>

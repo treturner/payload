@@ -1,9 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import express from 'express';
-import { v4 as uuid } from 'uuid';
+import * as dotenv from 'dotenv';
 import payload from '../src';
-import * as dotenv from "dotenv";
 
 dotenv.config();
 
@@ -28,19 +27,7 @@ process.env.PAYLOAD_DROP_DATABASE = 'true';
 const expressApp = express();
 
 const startDev = async () => {
-  await payload.init({
-    secret: uuid(),
-    mongoURL: process.env.MONGO_URL || 'mongodb://127.0.0.1/payload',
-    express: expressApp,
-    email: {
-      logMockCredentials: true,
-      fromName: 'Payload',
-      fromAddress: 'hello@payloadcms.com',
-    },
-    onInit: async () => {
-      payload.logger.info('Payload Dev Server Initialized');
-    },
-  });
+  await payload();
 
   // Redirect root to Admin panel
   expressApp.get('/', (_, res) => {

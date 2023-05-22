@@ -6,6 +6,7 @@ async function init(args: { Model: CollectionModel, req: PayloadRequest }): Prom
     Model,
   } = args;
 
+  // TODO: use payload.db.findOne instead of countDocuments
   const count = await Model.countDocuments({});
 
   return count >= 1;

@@ -4,7 +4,7 @@ import { BuildSortParam } from '../database/types';
 
 export const buildSortParam: BuildSortParam = ({ sort, config, fields, timestamps, locale }) => {
   let sortProperty: string;
-  let sortOrder = 'desc';
+  let sortOrder: 'asc' | 'desc' = 'desc';
 
   if (!sort) {
     if (timestamps) {

@@ -102,7 +102,7 @@ async function restoreVersion<T extends TypeWithID = any>(args: Arguments): Prom
   // /////////////////////////////////////
   // Update
   // /////////////////////////////////////
-
+  // TODO: replace with payload.db.updateOne
   let result = await Model.findByIdAndUpdate(
     { _id: parentDocID },
     rawVersion.version,

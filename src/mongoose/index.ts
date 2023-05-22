@@ -1,9 +1,7 @@
 import { Schema } from 'mongoose';
 import { DatabaseAdapter } from '../database/types';
-import buildSchema from './buildSchema';
-import { buildSortParam } from './buildSortParam';
+import init from './init';
 
 export const mongooseAdapter: DatabaseAdapter<Schema> = {
-  buildSchema,
-  buildSortParam,
+  init,
 };

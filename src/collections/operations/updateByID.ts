@@ -5,7 +5,7 @@ import { Document } from '../../types';
 import { Collection } from '../config/types';
 import sanitizeInternalFields from '../../utilities/sanitizeInternalFields';
 import executeAccess from '../../auth/executeAccess';
-import { NotFound, Forbidden, APIError, ValidationError } from '../../errors';
+import { APIError, Forbidden, NotFound, ValidationError } from '../../errors';
 import { PayloadRequest } from '../../express/types';
 import { hasWhereAccessResult } from '../../auth/types';
 import { saveVersion } from '../../versions/saveVersion';
@@ -236,6 +236,7 @@ async function updateByID<TSlug extends keyof GeneratedTypes['collections']>(
 
   if (!shouldSaveDraft) {
     try {
+      // TODO: replace with payload.db.updateOne
       result = await Model.findByIdAndUpdate(
         { _id: id },
         result,

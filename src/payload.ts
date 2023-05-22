@@ -93,8 +93,14 @@ export class BasePayload<TGeneratedTypes extends GeneratedTypes> {
 
   secret: string;
 
+  /**
+   * @deprecated moving to database.mongoURL
+   */
   mongoURL: string | false;
 
+  /**
+   * @deprecated moving to database.options
+   */
   mongoOptions: InitOptions['mongoOptions'];
 
   mongoMemoryServer: any;

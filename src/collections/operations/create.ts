@@ -198,6 +198,7 @@ async function create<TSlug extends keyof GeneratedTypes['collections']>(
     }
 
     try {
+      // TODO: replace with payload.db.create and add password handling in beforeChange to encrypt
       doc = await Model.register(resultWithLocales, data.password as string);
     } catch (error) {
       // Handle user already exists from passport-local-mongoose
@@ -208,7 +209,7 @@ async function create<TSlug extends keyof GeneratedTypes['collections']>(
     }
   } else {
     try {
-      doc = await Model.create(resultWithLocales);
+      doc = await payload.database.create(collectionConfig, resultWithLocales);
     } catch (error) {
       // Handle uniqueness error from MongoDB
       throw error.code === 11000 && error.keyValue
