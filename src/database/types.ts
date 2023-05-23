@@ -1,4 +1,5 @@
 import type { SchemaOptions } from 'mongoose';
+import { Configuration } from 'webpack';
 import type { Config, SanitizedConfig } from '../config/types';
 import {
   ArrayField,
@@ -29,9 +30,14 @@ import { Document, Where } from '../types';
 
 export interface DatabaseAdapter<TSchema> {
   /**
+   * Database specific properties
+   */
+  options: Record<string, unknown>
+
+  /**
    * Open the connection to the database
    */
-  connect?: () => Promise<void>
+  connect?: ({ payload, config }) => Promise<void>
 
   /**
    * Perform startup tasks required to interact with the database such as building Schema and models
@@ -43,11 +49,16 @@ export interface DatabaseAdapter<TSchema> {
    */
   destroy?: () => Promise<void>
 
+  /**
+   * Used to alias server only modules or make other changes to webpack configuration
+   */
+  webpack?: (config: Configuration) => Configuration
+
   // migrations
   /**
    * Output a migration file
    */
-  createMigration: ({ payload }: {payload: Payload}) => Promise<void>
+  createMigration: ({ payload }: { payload: Payload }) => Promise<void>
 
   /**
    * Run any migration up functions that have not yet been performed
@@ -88,17 +99,17 @@ export interface DatabaseAdapter<TSchema> {
   /**
    * Start a transaction, requiring commit() to be called for any changes to be made.
    */
-  begin?: ({ payload }: {payload: Payload}) => Promise<boolean>
+  beginTransaction?: ({ payload }: {payload: Payload}) => Promise<boolean>
 
   /**
    * Cancel any changes since the beginning of the transaction.
    */
-  rollback?: ({ payload }: {payload: Payload}) => Promise<boolean>
+  rollbackTransaction?: ({ payload }: {payload: Payload}) => Promise<boolean>
 
   /**
    * Instruct the database to complete the changes made in the transaction.
    */
-  commit?: ({ payload }: {payload: Payload}) => Promise<boolean>
+  commitTransaction?: ({ payload }: {payload: Payload}) => Promise<boolean>
 
   // versions
   queryDrafts: QueryDrafts<unknown>
