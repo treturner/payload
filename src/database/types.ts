@@ -28,7 +28,7 @@ import { SanitizedCollectionConfig } from '../collections/config/types';
 import { Payload } from '../payload';
 import { Document, Where } from '../types';
 
-export interface DatabaseAdapter<TSchema> {
+export interface DatabaseAdapter<TSchema, TConnection> {
   /**
    * Database specific properties
    */
@@ -37,12 +37,17 @@ export interface DatabaseAdapter<TSchema> {
   /**
    * Open the connection to the database
    */
-  connect?: ({ payload, config }) => Promise<void>
+  connect?: ({ payload, config }: {payload: Payload, config: SanitizedConfig}) => Promise<void>
+
+  /**
+   * Access to the current held connection if one exists
+   */
+  connection?: TConnection
 
   /**
    * Perform startup tasks required to interact with the database such as building Schema and models
    */
-  init?: ({ payload, config }) => Promise<void>
+  init?: ({ payload, config }: {payload: Payload, config: SanitizedConfig}) => Promise<void>
 
   /**
    * Terminate the connection with the database
@@ -61,7 +66,7 @@ export interface DatabaseAdapter<TSchema> {
   createMigration: ({ payload }: { payload: Payload }) => Promise<void>
 
   /**
-   * Run any migration up functions that have not yet been performed
+   * Run any migration up functions that have not yet been performed and update the status
    */
   migrate: ({ payload }: {payload: Payload}) => Promise<void>
 
@@ -86,7 +91,7 @@ export interface DatabaseAdapter<TSchema> {
   migrateReset: ({ payload }: {payload: Payload}) => Promise<void>
 
   /**
-   * Drop the current database and run all up functions
+   * Drop the current database and run all migrate up functions
    */
   migrateFresh: ({ payload }: {payload: Payload}) => Promise<void>
 
