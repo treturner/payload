@@ -119,7 +119,15 @@ export class BasePayload<TGeneratedTypes extends GeneratedTypes> {
 
   router?: Router;
 
-  database: DatabaseAdapter<unknown>;
+  database: DatabaseAdapter<unknown, unknown>;
+
+  transaction: DatabaseAdapter<unknown, unknown>['transaction'];
+
+  beginTransaction: DatabaseAdapter<unknown, unknown>['beginTransaction'];
+
+  rollbackTransaction: DatabaseAdapter<unknown, unknown>['rollbackTransaction'];
+
+  commitTransaction: DatabaseAdapter<unknown, unknown>['commitTransaction'];
 
   types: {
     blockTypes: any;
@@ -155,6 +163,11 @@ export class BasePayload<TGeneratedTypes extends GeneratedTypes> {
     this.mongoURL = options.mongoURL;
     this.mongoOptions = options.mongoOptions;
     this.database = mongooseAdapter;
+
+    this.beginTransaction = () => mongooseAdapter.beginTransaction({ payload: this });
+    this.transaction = () => mongooseAdapter.transaction({ payload: this });
+    this.rollbackTransaction = () => mongooseAdapter.rollbackTransaction({ payload: this });
+    this.commitTransaction = () => mongooseAdapter.commitTransaction({ payload: this });
 
     if (this.mongoURL) {
       mongoose.set('strictQuery', false);
