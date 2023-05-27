@@ -40,8 +40,8 @@ const Form: React.FC<Props> = (props) => {
     className,
     redirect,
     disableSuccessStatus,
-    initialState, // fully formed initial field state
-    initialData, // values only, paths are required as key - form should build initial state as convenience
+    initialState,
+    initialData,
     waitForAutocomplete,
   } = props;
 
@@ -55,20 +55,18 @@ const Form: React.FC<Props> = (props) => {
   const [modified, setModified] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [formattedInitialData, setFormattedInitialData] = useState(buildInitialState(initialData));
 
   const formRef = useRef<HTMLFormElement>(null);
-  const contextRef = useRef({} as FormContextType);
+  const contextRef = useRef({ ...initContextState } as FormContextType);
 
-  let initialFieldState = {};
-
-  if (formattedInitialData) initialFieldState = formattedInitialData;
-  if (initialState) initialFieldState = initialState;
+  const initialDataAsState = React.useMemo(() => buildInitialState(initialData), [initialData]);
+  const initialFieldState = initialState || initialDataAsState || {};
 
   const fieldsReducer = useReducer(fieldReducer, {}, () => initialFieldState);
   const [fields, dispatchFields] = fieldsReducer;
 
   contextRef.current.fields = fields;
+  // Attach dispatcher to context. Access from: `useForm()` | `useWatchForm()`
   contextRef.current.dispatchFields = dispatchFields;
 
   const validateForm = useCallback(async () => {
@@ -362,19 +360,15 @@ const Form: React.FC<Props> = (props) => {
 
   useEffect(() => {
     if (initialState) {
-      contextRef.current = { ...initContextState } as FormContextType;
       dispatchFields({ type: 'REPLACE_STATE', state: initialState });
     }
   }, [initialState, dispatchFields]);
 
   useEffect(() => {
-    if (initialData) {
-      contextRef.current = { ...initContextState } as FormContextType;
-      const builtState = buildInitialState(initialData);
-      setFormattedInitialData(builtState);
-      dispatchFields({ type: 'REPLACE_STATE', state: builtState });
+    if (initialDataAsState) {
+      dispatchFields({ type: 'REPLACE_STATE', state: initialDataAsState });
     }
-  }, [initialData, dispatchFields]);
+  }, [initialDataAsState, dispatchFields]);
 
   useThrottledEffect(() => {
     refreshCookie();

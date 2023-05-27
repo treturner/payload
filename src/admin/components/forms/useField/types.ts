@@ -9,10 +9,10 @@ export type Options = {
 
 export type FieldType<T> = {
   value: T
+  initialValue?: T
   errorMessage?: string
   showError: boolean
   formSubmitted: boolean
   formProcessing: boolean
   setValue: (val: unknown, modifyForm?: boolean) => void
-  initialValue?: T
 }

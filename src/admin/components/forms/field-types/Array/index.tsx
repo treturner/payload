@@ -67,7 +67,7 @@ const ArrayFieldType: React.FC<Props> = (props) => {
   const { getPreference } = usePreferences();
   const { setPreference } = usePreferences();
   const [rows, dispatchRows] = useReducer(reducer, undefined);
-  const formContext = useForm();
+  const { dispatchFields, setModified, getDataByPath } = useForm();
   const { user } = useAuth();
   const locale = useLocale();
   const operation = useOperation();
@@ -91,8 +91,6 @@ const ArrayFieldType: React.FC<Props> = (props) => {
   };
 
   const labels = getLabels(props);
-
-  const { dispatchFields, setModified } = formContext;
 
   const memoizedValidate = useCallback((value, options) => {
     if (checkSkipValidation(value)) return true;
@@ -139,6 +137,7 @@ const ArrayFieldType: React.FC<Props> = (props) => {
 
   const moveRow = useCallback((moveFromIndex: number, moveToIndex: number) => {
     dispatchRows({ type: 'MOVE', moveFromIndex, moveToIndex });
+    // TODO: need to be able to store the row data in the form state
     dispatchFields({ type: 'MOVE_ROW', moveFromIndex, moveToIndex, path });
     setModified(true);
   }, [dispatchRows, dispatchFields, path, setModified]);
@@ -199,13 +198,13 @@ const ArrayFieldType: React.FC<Props> = (props) => {
 
   useEffect(() => {
     const initializeRowState = async () => {
-      const data = formContext.getDataByPath<Row[]>(path);
+      const data = getDataByPath<Row[]>(path);
       const preferences = (await getPreference(preferencesKey)) || { fields: {} };
       dispatchRows({ type: 'SET_ALL', data: data || [], collapsedState: preferences?.fields?.[path]?.collapsed, initCollapsed });
     };
 
     initializeRowState();
-  }, [formContext, path, getPreference, preferencesKey, initCollapsed]);
+  }, [getDataByPath, path, getPreference, preferencesKey, initCollapsed]);
 
   const hasMaxRows = maxRows && rows?.length >= maxRows;
 

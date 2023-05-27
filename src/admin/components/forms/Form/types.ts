@@ -2,6 +2,11 @@ import React, { Dispatch } from 'react';
 import { Condition, Field as FieldConfig, Validate } from '../../../../fields/config/types';
 import { User } from '../../../../auth/types';
 
+export type Row = {
+  id: string
+  collapsed?: boolean
+  blockType?: string
+}
 export type Field = {
   value: unknown
   initialValue: unknown
@@ -11,6 +16,10 @@ export type Field = {
   disableFormData?: boolean
   condition?: Condition
   passesCondition?: boolean
+  /*
+    Holds row state for arrays and blocks
+  * */
+  rows?: Row[]
 }
 
 export type Fields = {
@@ -34,7 +43,15 @@ export type Props = {
   className?: string
   redirect?: string
   disableSuccessStatus?: boolean
+  /**
+    * Fully formed initial field state
+  */
   initialState?: Fields
+  /**
+   * Values only, paths are required as key
+   *
+   * Form should build initial state as convenience
+  */
   initialData?: Data
   waitForAutocomplete?: boolean
   log?: boolean

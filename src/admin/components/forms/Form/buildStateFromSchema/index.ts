@@ -16,6 +16,8 @@ type Args = {
 }
 
 const buildStateFromSchema = async (args: Args): Promise<Fields> => {
+  // TODO: need to adjust state schema buildup for arrays and blocks
+  console.log({ data: args.data, fieldSchema: args.fieldSchema });
   const {
     fieldSchema,
     data: fullData = {},
