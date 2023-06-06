@@ -15,7 +15,8 @@ import {
   EmailField,
   Field,
   FieldAffectingData,
-  fieldAffectsData, fieldIsLocalized,
+  fieldAffectsData,
+  fieldIsLocalized,
   fieldIsPresentationalOnly,
   GroupField,
   JSONField,
@@ -31,7 +32,8 @@ import {
   tabHasName,
   TabsField,
   TextareaField,
-  TextField, UnnamedTab,
+  TextField,
+  UnnamedTab,
   UploadField,
 } from '../fields/config/types';
 import unifiedLocaleConfig from '../utilities/unifiedLocaleConfig';
@@ -386,6 +388,9 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
   group: (field: GroupField, schema: Schema, config: SanitizedConfig, buildSchemaOptions: BuildSchemaOptions): void => {
     const formattedBaseSchema = formatBaseSchema(field, buildSchemaOptions);
 
+    // carry indexSortableFields through to versions if drafts enabled
+    const indexSortableFields = (buildSchemaOptions.indexSortableFields && field.name === 'version' && buildSchemaOptions.draftsEnabled);
+
     const baseSchema = {
       ...formattedBaseSchema,
       type: buildSchema(
@@ -397,6 +402,7 @@ const fieldToSchemaMap: Record<string, FieldSchemaGenerator> = {
             id: false,
             minimize: false,
           },
+          indexSortableFields,
           disableUnique: buildSchemaOptions.disableUnique,
           draftsEnabled: buildSchemaOptions.draftsEnabled,
         },
